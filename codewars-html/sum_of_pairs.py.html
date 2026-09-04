@@ -1,0 +1,13 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><font color="#008080">def</font> <b><font color="#000000">sum_pairs</font></b><font color="#990000">(</font>nums<font color="#990000">,</font> sum_value<font color="#990000">):</font>
+    seen <font color="#990000">=</font> <b><font color="#000000">set</font></b><font color="#990000">()</font>
+    <b><font color="#0000FF">for</font></b> num <font color="#008080">in</font> nums<font color="#990000">:</font>
+        diff <font color="#990000">=</font> sum_value <font color="#990000">-</font> num
+        <b><font color="#0000FF">if</font></b> diff <font color="#008080">in</font> seen<font color="#990000">:</font>
+            <b><font color="#0000FF">return</font></b> <font color="#990000">[</font>diff<font color="#990000">,</font> num<font color="#990000">]</font>
+        seen<font color="#990000">.</font><b><font color="#000000">add</font></b><font color="#990000">(</font>num<font color="#990000">)</font>
+
+</tt></pre>

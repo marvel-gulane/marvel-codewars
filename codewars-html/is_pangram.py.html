@@ -1,0 +1,18 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><b><font color="#000080">import</font></b> string   
+<font color="#008080">def</font> <b><font color="#000000">is_pangram</font></b><font color="#990000">(</font>str<font color="#990000">):</font> 
+    alphabet <font color="#990000">=</font> <font color="#FF0000">"abcdefghijklmnopqrstuvwxyz"</font>
+    <b><font color="#0000FF">for</font></b> <font color="#009900">char</font> <font color="#008080">in</font> alphabet<font color="#990000">:</font> 
+        <b><font color="#0000FF">if</font></b> <font color="#009900">char</font> not <font color="#008080">in</font> str<font color="#990000">.</font><b><font color="#000000">lower</font></b><font color="#990000">():</font> 
+            <b><font color="#0000FF">return</font></b> False
+    <b><font color="#0000FF">return</font></b> True
+      
+string <font color="#990000">=</font> <font color="#FF0000">'the quick brown fox jumps over the lazy dog'</font>
+<b><font color="#0000FF">if</font></b><font color="#990000">(</font><b><font color="#000000">is_pangram</font></b><font color="#990000">(</font>string<font color="#990000">)</font> <font color="#990000">==</font> True<font color="#990000">):</font> 
+    <b><font color="#000000">print</font></b><font color="#990000">(</font><font color="#FF0000">"Yes"</font><font color="#990000">)</font> 
+<b><font color="#0000FF">else</font></b><font color="#990000">:</font> 
+    <b><font color="#000000">print</font></b><font color="#990000">(</font><font color="#FF0000">"No"</font><font color="#990000">)</font> 
+</tt></pre>

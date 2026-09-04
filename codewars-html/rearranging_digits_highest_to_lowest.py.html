@@ -1,0 +1,14 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><font color="#008080">def</font> <b><font color="#000000">descending_order</font></b><font color="#990000">(</font>num<font color="#990000">):</font>
+    data <font color="#990000">=</font> <b><font color="#000000">sorted</font></b><font color="#990000">([</font>i <b><font color="#0000FF">for</font></b> i <font color="#008080">in</font> <b><font color="#000000">str</font></b><font color="#990000">(</font>num<font color="#990000">)],</font> reverse<font color="#990000">=</font>True<font color="#990000">)</font>
+    joined <font color="#990000">=</font> <font color="#009900">int</font><font color="#990000">(</font><font color="#FF0000">""</font><font color="#990000">.</font><b><font color="#000000">join</font></b><font color="#990000">(</font>data<font color="#990000">))</font>
+    <b><font color="#0000FF">return</font></b> <font color="#FF0000">'</font><font color="#CC33CC">\n</font><font color="#FF0000"> Input: %s Output: %s'</font> <font color="#990000">%</font> <font color="#990000">(</font>num<font color="#990000">,</font> joined<font color="#990000">)</font>
+
+integer <font color="#990000">=</font> <font color="#990000">[</font><font color="#FF0000">'42145'</font><font color="#990000">,</font><font color="#FF0000">'145263'</font><font color="#990000">,</font><font color="#FF0000">'123456789'</font><font color="#990000">,</font> <font color="#FF0000">'1201'</font><font color="#990000">]</font>
+<b><font color="#0000FF">for</font></b> i <font color="#008080">in</font> integer<font color="#990000">:</font>
+    <b><font color="#000000">print</font></b><font color="#990000">(</font><b><font color="#000000">descending_order</font></b><font color="#990000">(</font>i<font color="#990000">))</font>
+
+</tt></pre>

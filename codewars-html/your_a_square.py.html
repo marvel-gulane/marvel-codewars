@@ -1,0 +1,22 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><font color="#008080">def</font> <b><font color="#000000">scale</font></b><font color="#990000">(</font>strng<font color="#990000">,</font> k<font color="#990000">,</font> n<font color="#990000">):</font>
+    arr <font color="#990000">=</font> <b><font color="#000000">list</font></b><font color="#990000">(</font>strng<font color="#990000">)</font>
+    s <font color="#990000">=</font> s1 <font color="#990000">=</font> <font color="#FF0000">""</font>
+    <b><font color="#0000FF">for</font></b> i <font color="#008080">in</font> arr<font color="#990000">:</font>
+        <b><font color="#0000FF">if</font></b> i <font color="#008080">is</font> not <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">:</font>
+            i <font color="#990000">*=</font> k
+        s <font color="#990000">+=</font> i
+    arr1 <font color="#990000">=</font> s<font color="#990000">.</font><b><font color="#000000">split</font></b><font color="#990000">(</font><font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">)</font>
+    <b><font color="#0000FF">for</font></b> i <font color="#008080">in</font> arr1<font color="#990000">:</font>
+        i <font color="#990000">+=</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font>
+        i <font color="#990000">*=</font> n
+        s1 <font color="#990000">+=</font> i
+    <b><font color="#0000FF">return</font></b> s1<font color="#990000">[:-</font><font color="#993399">1</font><font color="#990000">]</font>
+a <font color="#990000">=</font> <font color="#FF0000">"abcd</font><font color="#CC33CC">\\</font><font color="#FF0000">nefgh</font><font color="#CC33CC">\\</font><font color="#FF0000">nijkl</font><font color="#CC33CC">\\</font><font color="#FF0000">nmnop"</font>
+k <font color="#990000">=</font> <font color="#993399">2</font>
+n <font color="#990000">=</font> <font color="#993399">3</font>
+<b><font color="#000000">print</font></b><font color="#990000">(</font><b><font color="#000000">scale</font></b><font color="#990000">(</font>a<font color="#990000">,</font>k<font color="#990000">,</font>n<font color="#990000">))</font>
+</tt></pre>

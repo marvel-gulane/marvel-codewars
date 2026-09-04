@@ -1,0 +1,24 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><font color="#008080">def</font> <b><font color="#000000">spin_words</font></b><font color="#990000">(</font>sentence<font color="#990000">):</font>
+    words<font color="#990000">=</font>sentence<font color="#990000">.</font><b><font color="#000000">split</font></b><font color="#990000">(</font><font color="#FF0000">" "</font><font color="#990000">)</font>
+    <b><font color="#0000FF">if</font></b> <b><font color="#000000">len</font></b><font color="#990000">(</font>words<font color="#990000">)</font> <font color="#990000">==</font> <font color="#993399">1</font><font color="#990000">:</font>
+        newWords <font color="#990000">=</font> <font color="#990000">[</font>word<font color="#990000">[::-</font><font color="#993399">1</font><font color="#990000">]</font> <b><font color="#0000FF">for</font></b> word <font color="#008080">in</font> words<font color="#990000">]</font>
+        newSentence <font color="#990000">=</font> <font color="#FF0000">" "</font><font color="#990000">.</font><b><font color="#000000">join</font></b><font color="#990000">(</font>newWords<font color="#990000">)</font>
+        <b><font color="#0000FF">return</font></b> newSentence
+    <b><font color="#0000FF">else</font></b><font color="#990000">:</font>
+        words <font color="#990000">=</font> sentence<font color="#990000">.</font><b><font color="#000000">split</font></b><font color="#990000">(</font><font color="#FF0000">" "</font><font color="#990000">)</font>
+        newWords <font color="#990000">=</font> <font color="#990000">[</font>word<font color="#990000">[::-</font><font color="#993399">1</font><font color="#990000">]</font> <b><font color="#0000FF">for</font></b> word <font color="#008080">in</font> words<font color="#990000">]</font>
+        newSentence <font color="#990000">=</font> <font color="#FF0000">" "</font><font color="#990000">.</font><b><font color="#000000">join</font></b><font color="#990000">(</font>newWords<font color="#990000">)</font>
+        sentence<font color="#990000">=</font>newSentence<font color="#990000">.</font><b><font color="#000000">split</font></b><font color="#990000">(</font><font color="#FF0000">" "</font><font color="#990000">)</font>
+        <b><font color="#0000FF">for</font></b> letters <font color="#008080">in</font> sentence<font color="#990000">:</font>
+            <b><font color="#0000FF">if</font></b> <b><font color="#000000">len</font></b><font color="#990000">(</font>letters<font color="#990000">)</font> <font color="#990000">&lt;</font> <font color="#993399">5</font><font color="#990000">:</font>
+                new_letter<font color="#990000">=</font>letters<font color="#990000">[::-</font><font color="#993399">1</font><font color="#990000">]</font>
+                sentence<font color="#990000">=</font><font color="#FF0000">' '</font><font color="#990000">.</font><b><font color="#000000">join</font></b><font color="#990000">(</font>sentence<font color="#990000">)</font>
+                <b><font color="#0000FF">return</font></b> sentence<font color="#990000">.</font><b><font color="#000000">replace</font></b><font color="#990000">(</font>letters<font color="#990000">,</font> new_letter<font color="#990000">)</font>
+
+message <font color="#990000">=</font> <font color="#FF0000">"to"</font>
+<b><font color="#000000">print</font></b><font color="#990000">(</font><b><font color="#000000">spin_words</font></b><font color="#990000">(</font>message<font color="#990000">))</font>
+</tt></pre>

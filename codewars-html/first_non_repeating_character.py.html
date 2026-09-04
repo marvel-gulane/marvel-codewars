@@ -1,0 +1,18 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><font color="#008080">def</font> <b><font color="#000000">first_non_repeating_letter</font></b><font color="#990000">(</font>string<font color="#990000">):</font>
+    low_str <font color="#990000">=</font> <font color="#990000">[]</font>
+    <b><font color="#0000FF">for</font></b> i <font color="#008080">in</font> string<font color="#990000">:</font>
+        low_str<font color="#990000">.</font><b><font color="#000000">append</font></b><font color="#990000">(</font>i<font color="#990000">.</font><b><font color="#000000">lower</font></b><font color="#990000">())</font>
+    <b><font color="#0000FF">for</font></b> i <font color="#008080">in</font> string<font color="#990000">:</font>
+        <b><font color="#0000FF">if</font></b> low_str<font color="#990000">.</font><b><font color="#000000">count</font></b><font color="#990000">(</font>i<font color="#990000">.</font><b><font color="#000000">lower</font></b><font color="#990000">())</font> <font color="#990000">==</font> <font color="#993399">1</font><font color="#990000">:</font>
+            <b><font color="#0000FF">return</font></b> i
+    <b><font color="#0000FF">return</font></b> <font color="#FF0000">''</font>
+
+# Test Cases
+
+<b><font color="#000000">print</font></b><font color="#990000">(</font><b><font color="#000000">first_non_repeating_letter</font></b><font color="#990000">(</font><font color="#FF0000">'sTreSS'</font><font color="#990000">))</font>
+<b><font color="#000000">print</font></b><font color="#990000">(</font><b><font color="#000000">first_non_repeating_letter</font></b><font color="#990000">(</font><font color="#FF0000">'stress'</font><font color="#990000">))</font>
+</tt></pre>

@@ -1,0 +1,12 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><b><font color="#000080">import</font></b> codecs
+<font color="#008080">def</font> <b><font color="#000000">rot13</font></b><font color="#990000">(</font>s<font color="#990000">):</font>
+    msg <font color="#990000">=</font> codecs<font color="#990000">.</font><b><font color="#000000">encode</font></b><font color="#990000">(</font>s<font color="#990000">,</font> <font color="#FF0000">'rot_13'</font><font color="#990000">)</font>
+    <b><font color="#0000FF">return</font></b> <font color="#FF0000">'%s'</font> <font color="#990000">%</font> <font color="#990000">(</font>msg<font color="#990000">)</font>
+meg <font color="#990000">=</font> <font color="#990000">[</font><font color="#FF0000">"test"</font><font color="#990000">,</font><font color="#FF0000">"Test"</font><font color="#990000">]</font>
+<b><font color="#0000FF">for</font></b> i <font color="#008080">in</font> meg<font color="#990000">:</font>
+    <b><font color="#000000">print</font></b><font color="#990000">(</font><b><font color="#000000">rot13</font></b><font color="#990000">(</font>i<font color="#990000">))</font>
+</tt></pre>

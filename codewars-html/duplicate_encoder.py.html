@@ -1,0 +1,11 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><font color="#008080">def</font> <b><font color="#000000">duplicate_encode</font></b><font color="#990000">(</font>word<font color="#990000">):</font>
+    <b><font color="#0000FF">return</font></b> <font color="#990000">(</font><font color="#008080">lambda</font> w<font color="#990000">:</font> <font color="#FF0000">''</font><font color="#990000">.</font><b><font color="#000000">join</font></b><font color="#990000">((</font><font color="#FF0000">'('</font><font color="#990000">,</font> <font color="#FF0000">')'</font><font color="#990000">)[</font>c <font color="#008080">in</font> w<font color="#990000">[:</font>i<font color="#990000">]</font> <font color="#990000">+</font> w<font color="#990000">[</font>i<font color="#990000">+</font><font color="#993399">1</font><font color="#990000">:]]</font> <b><font color="#0000FF">for</font></b> i<font color="#990000">,</font> c <font color="#008080">in</font> <b><font color="#000000">enumerate</font></b><font color="#990000">(</font>w<font color="#990000">)))(</font>word<font color="#990000">.</font><b><font color="#000000">lower</font></b><font color="#990000">())</font>
+
+strings <font color="#990000">=</font> <font color="#990000">[</font><font color="#FF0000">'din'</font><font color="#990000">,</font><font color="#FF0000">'recede'</font><font color="#990000">,</font><font color="#FF0000">'Success'</font><font color="#990000">,</font><font color="#FF0000">'(( @'</font><font color="#990000">]</font>
+<b><font color="#0000FF">for</font></b> encoder <font color="#008080">in</font> strings<font color="#990000">:</font>
+    <b><font color="#000000">print</font></b><font color="#990000">(</font><b><font color="#000000">duplicate_encode</font></b><font color="#990000">(</font>encoder<font color="#990000">))</font>
+</tt></pre>

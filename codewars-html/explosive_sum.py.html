@@ -1,0 +1,27 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><b><font color="#0000FF">class</font></b> <font color="#008080">Memoize</font><font color="#990000">:</font>
+    <font color="#008080">def</font> <b><font color="#000000">__init__</font></b><font color="#990000">(</font>self<font color="#990000">,</font> func<font color="#990000">):</font> 
+        self<font color="#990000">.</font>func <font color="#990000">=</font> func
+        self<font color="#990000">.</font>cache <font color="#990000">=</font> <font color="#FF0000">{}</font>
+    <font color="#008080">def</font> <b><font color="#000000">__call__</font></b><font color="#990000">(</font>self<font color="#990000">,</font> arg<font color="#990000">):</font>
+        <b><font color="#0000FF">if</font></b> arg not <font color="#008080">in</font> self<font color="#990000">.</font>cache<font color="#990000">:</font> 
+            self<font color="#990000">.</font>cache<font color="#990000">[</font>arg<font color="#990000">]</font> <font color="#990000">=</font> self<font color="#990000">.</font><b><font color="#000000">func</font></b><font color="#990000">(</font>arg<font color="#990000">)</font>
+        <b><font color="#0000FF">return</font></b> self<font color="#990000">.</font>cache<font color="#990000">[</font>arg<font color="#990000">]</font>
+
+@Memoize
+<font color="#008080">def</font> <b><font color="#000000">exp_sum</font></b><font color="#990000">(</font>n<font color="#990000">):</font>
+    <b><font color="#0000FF">if</font></b> n <font color="#990000">==</font> <font color="#993399">0</font><font color="#990000">:</font> <b><font color="#0000FF">return</font></b> <font color="#993399">1</font>
+    result <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> k <font color="#990000">=</font> <font color="#993399">1</font><font color="#990000">;</font> sign <font color="#990000">=</font> <font color="#993399">1</font><font color="#990000">;</font> 
+    <b><font color="#0000FF">while</font></b> True<font color="#990000">:</font>
+        pent <font color="#990000">=</font> <font color="#990000">(</font><font color="#993399">3</font><font color="#990000">*</font>k<font color="#990000">**</font><font color="#993399">2</font> <font color="#990000">-</font> k<font color="#990000">)</font> <i><font color="#9A1900">// 2        </font></i>
+        <b><font color="#0000FF">if</font></b> pent <font color="#990000">&gt;</font> n<font color="#990000">:</font> <b><font color="#0000FF">break</font></b>
+        result <font color="#990000">+=</font> sign <font color="#990000">*</font> <b><font color="#000000">exp_sum</font></b><font color="#990000">(</font>n <font color="#990000">-</font> pent<font color="#990000">)</font> 
+        pent <font color="#990000">+=</font> k
+        <b><font color="#0000FF">if</font></b> pent <font color="#990000">&gt;</font> n<font color="#990000">:</font> <b><font color="#0000FF">break</font></b>
+        result <font color="#990000">+=</font> sign <font color="#990000">*</font> <b><font color="#000000">exp_sum</font></b><font color="#990000">(</font>n <font color="#990000">-</font> pent<font color="#990000">)</font> 
+        k <font color="#990000">+=</font> <font color="#993399">1</font><font color="#990000">;</font> sign <font color="#990000">=</font> <font color="#990000">-</font>sign<font color="#990000">;</font> 
+    <b><font color="#0000FF">return</font></b> result
+</tt></pre>

@@ -1,0 +1,1273 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><i><font color="#9A1900">/* This Source Code Form is subject to the terms of the Mozilla Public</font></i>
+<i><font color="#9A1900"> * License, v. 2.0. If a copy of the MPL was not distributed with this</font></i>
+<i><font color="#9A1900"> * file, You can obtain one at </font></i><u><font color="#0000FF">http://mozilla.org/MPL/2.0/.</font></u><i><font color="#9A1900"> */</font></i>
+
+<b><font color="#000080">import</font></b> <font color="#FF0000">{</font>
+  Certificate<font color="#990000">,</font>
+  ECNamedCurves<font color="#990000">,</font>
+  ECPublicKey<font color="#990000">,</font>
+  RSAPublicKey<font color="#990000">,</font>
+<font color="#FF0000">}</font> from <font color="#FF0000">"./vendor/pkijs.js"</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> getTimeZone <font color="#990000">=</font> <font color="#990000">()</font> <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <font color="#008080">let</font> timeZone <font color="#990000">=</font> <b><font color="#0000FF">new</font></b> <b><font color="#000000">Date</font></b><font color="#990000">().</font><b><font color="#000000">toString</font></b><font color="#990000">().</font><b><font color="#000000">match</font></b><font color="#990000">(/\(([</font>A<font color="#990000">-</font>Za<font color="#990000">-</font>z<font color="#990000">\</font>s<font color="#990000">].*)\)/);</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>timeZone <font color="#990000">===</font> <b><font color="#0000FF">null</font></b><font color="#990000">)</font> <font color="#FF0000">{</font>
+    <i><font color="#9A1900">// America/Chicago</font></i>
+    timeZone <font color="#990000">=</font> Intl<font color="#990000">.</font><b><font color="#000000">DateTimeFormat</font></b><font color="#990000">().</font><b><font color="#000000">resolvedOptions</font></b><font color="#990000">().</font>timeZone<font color="#990000">;</font>
+  <font color="#FF0000">}</font> <b><font color="#0000FF">else</font></b> <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>timeZone<font color="#990000">.</font>length <font color="#990000">&gt;</font> <font color="#993399">1</font><font color="#990000">)</font> <font color="#FF0000">{</font>
+    timeZone <font color="#990000">=</font> timeZone<font color="#990000">[</font><font color="#993399">1</font><font color="#990000">];</font> <i><font color="#9A1900">// Central Daylight Time</font></i>
+  <font color="#FF0000">}</font> <b><font color="#0000FF">else</font></b> <font color="#FF0000">{</font>
+    timeZone <font color="#990000">=</font> <font color="#FF0000">"Local Time"</font><font color="#990000">;</font> <i><font color="#9A1900">// not sure if this is right, but let's go with it for now</font></i>
+  <font color="#FF0000">}</font>
+  <b><font color="#0000FF">return</font></b> timeZone<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> getPublicKeyInfo <font color="#990000">=</font> x509 <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <font color="#008080">let</font> publicKey <font color="#990000">=</font> x509<font color="#990000">.</font>subjectPublicKeyInfo<font color="#990000">.</font>parsedKey<font color="#990000">;</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>publicKey <font color="#008080">instanceof</font> RSAPublicKey<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <font color="#008080">let</font> modulusJSON <font color="#990000">=</font> publicKey<font color="#990000">.</font>modulus<font color="#990000">.</font><b><font color="#000000">toJSON</font></b><font color="#990000">();</font>
+    <font color="#008080">let</font> modulusHex <font color="#990000">=</font> modulusJSON<font color="#990000">.</font>valueBlock<font color="#990000">.</font>valueHex<font color="#990000">;</font>
+    <b><font color="#0000FF">return</font></b> <font color="#FF0000">{</font>
+      e<font color="#990000">:</font> publicKey<font color="#990000">.</font>publicExponent<font color="#990000">.</font><b><font color="#000000">toJSON</font></b><font color="#990000">().</font>valueBlock<font color="#990000">.</font>valueDec<font color="#990000">,</font>
+      kty<font color="#990000">:</font> <font color="#FF0000">"RSA"</font><font color="#990000">,</font>
+      n<font color="#990000">:</font> <b><font color="#000000">hashify</font></b><font color="#990000">(</font>modulusHex<font color="#990000">),</font>
+      keysize<font color="#990000">:</font> modulusHex<font color="#990000">.</font>length <font color="#990000">*</font> <font color="#993399">4</font><font color="#990000">,</font> <i><font color="#9A1900">// key size in bits</font></i>
+    <font color="#FF0000">}</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>publicKey <font color="#008080">instanceof</font> ECPublicKey<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <font color="#008080">let</font> x <font color="#990000">=</font> <b><font color="#000000">hashify</font></b><font color="#990000">(</font>publicKey<font color="#990000">.</font>x<font color="#990000">);</font>
+    <font color="#008080">let</font> y <font color="#990000">=</font> <b><font color="#000000">hashify</font></b><font color="#990000">(</font>publicKey<font color="#990000">.</font>y<font color="#990000">);</font>
+    <font color="#008080">let</font> curve <font color="#990000">=</font> ECNamedCurves<font color="#990000">.</font><b><font color="#000000">find</font></b><font color="#990000">(</font>publicKey<font color="#990000">.</font>namedCurve<font color="#990000">);</font>
+    <font color="#008080">let</font> keysize <font color="#990000">=</font> curve <font color="#990000">?</font> curve<font color="#990000">.</font>size <font color="#990000">*</font> <font color="#993399">8</font> <font color="#990000">:</font> undefined<font color="#990000">;</font>
+    <b><font color="#0000FF">return</font></b> <font color="#FF0000">{</font>
+      kty<font color="#990000">:</font> <font color="#FF0000">"Elliptic Curve"</font><font color="#990000">,</font>
+      keysize<font color="#990000">,</font>
+      x<font color="#990000">,</font> <i><font color="#9A1900">// x coordinate</font></i>
+      y<font color="#990000">,</font> <i><font color="#9A1900">// y coordinate</font></i>
+      xy<font color="#990000">:</font> `<font color="#993399">04</font><font color="#990000">:</font>$<font color="#FF0000">{</font>x<font color="#FF0000">}</font><font color="#990000">:</font>$<font color="#FF0000">{</font>y<font color="#FF0000">}</font>`<font color="#990000">,</font> <i><font color="#9A1900">// 04 (uncompressed) public key</font></i>
+    <font color="#FF0000">}</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+  <b><font color="#0000FF">return</font></b> <font color="#FF0000">{</font> kty<font color="#990000">:</font> <font color="#FF0000">"Unknown"</font> <font color="#FF0000">}</font><font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> getX509Ext <font color="#990000">=</font> <font color="#990000">(</font>extensions<font color="#990000">,</font> v<font color="#990000">)</font> <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font>var extension <font color="#008080">in</font> extensions<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>extensions<font color="#990000">[</font>extension<font color="#990000">].</font>extnID <font color="#990000">===</font> v<font color="#990000">)</font> <font color="#FF0000">{</font>
+      <b><font color="#0000FF">return</font></b> extensions<font color="#990000">[</font>extension<font color="#990000">].</font><b><font color="#000000">toJSON</font></b><font color="#990000">().</font>parsedValue<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+  <font color="#FF0000">}</font>
+  <b><font color="#0000FF">return</font></b> undefined<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> getKeyUsages <font color="#990000">=</font> <font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">)</font> <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <font color="#008080">let</font> keyUsages <font color="#990000">=</font> <font color="#FF0000">{</font>
+    critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"2.5.29.15"</font><font color="#990000">),</font>
+    purposes<font color="#990000">:</font> <font color="#990000">[],</font>
+  <font color="#FF0000">}</font><font color="#990000">;</font>
+
+  <font color="#008080">let</font> keyUsagesBS <font color="#990000">=</font> <b><font color="#000000">getX509Ext</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">,</font> <font color="#FF0000">"2.5.29.15"</font><font color="#990000">);</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>keyUsagesBS <font color="#990000">!==</font> undefined<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <i><font color="#9A1900">// parse the bit string, shifting as necessary</font></i>
+    <font color="#008080">let</font> unusedBits <font color="#990000">=</font> keyUsagesBS<font color="#990000">.</font>valueBlock<font color="#990000">.</font>unusedBits<font color="#990000">;</font>
+    keyUsagesBS <font color="#990000">=</font> <b><font color="#000000">parseInt</font></b><font color="#990000">(</font>keyUsagesBS<font color="#990000">.</font>valueBlock<font color="#990000">.</font>valueHex<font color="#990000">,</font> <font color="#993399">16</font><font color="#990000">)</font> <font color="#990000">&gt;&gt;</font> unusedBits<font color="#990000">;</font>
+
+    <i><font color="#9A1900">// iterate through the bit string</font></i>
+    strings<font color="#990000">.</font>keyUsages<font color="#990000">.</font><b><font color="#000000">slice</font></b><font color="#990000">(</font>unusedBits <font color="#990000">-</font> <font color="#993399">1</font><font color="#990000">).</font><b><font color="#000000">forEach</font></b><font color="#990000">(</font>usage <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+      <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>keyUsagesBS <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">)</font> <font color="#FF0000">{</font>
+        keyUsages<font color="#990000">.</font>purposes<font color="#990000">.</font><b><font color="#000000">push</font></b><font color="#990000">(</font>usage<font color="#990000">);</font>
+      <font color="#FF0000">}</font>
+
+      keyUsagesBS <font color="#990000">=</font> keyUsagesBS <font color="#990000">&gt;&gt;</font> <font color="#993399">1</font><font color="#990000">;</font>
+    <font color="#FF0000">}</font><font color="#990000">);</font>
+
+    <i><font color="#9A1900">// reverse the order for legibility</font></i>
+    keyUsages<font color="#990000">.</font>purposes<font color="#990000">.</font><b><font color="#000000">reverse</font></b><font color="#990000">();</font>
+  <font color="#FF0000">}</font>
+
+  <b><font color="#0000FF">return</font></b> keyUsages<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> parseSubsidiary <font color="#990000">=</font> distinguishedNames <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <b><font color="#0000FF">const</font></b> subsidiary <font color="#990000">=</font> <font color="#FF0000">{</font>
+    cn<font color="#990000">:</font> <font color="#FF0000">""</font><font color="#990000">,</font>
+    dn<font color="#990000">:</font> <font color="#990000">[],</font>
+    entries<font color="#990000">:</font> <font color="#990000">[],</font>
+  <font color="#FF0000">}</font><font color="#990000">;</font>
+
+  distinguishedNames<font color="#990000">.</font><b><font color="#000000">forEach</font></b><font color="#990000">(</font>dn <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">const</font></b> distinguishedName <font color="#990000">=</font> strings<font color="#990000">.</font>names<font color="#990000">[</font>dn<font color="#990000">.</font>type<font color="#990000">];</font>
+    <b><font color="#0000FF">const</font></b> value <font color="#990000">=</font> dn<font color="#990000">.</font>value<font color="#990000">.</font>valueBlock<font color="#990000">.</font>value<font color="#990000">;</font>
+
+    <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>distinguishedName <font color="#990000">===</font> undefined<font color="#990000">)</font> <font color="#FF0000">{</font>
+      subsidiary<font color="#990000">.</font>dn<font color="#990000">.</font><b><font color="#000000">push</font></b><font color="#990000">(</font>`OID<font color="#990000">.</font>$<font color="#FF0000">{</font>dn<font color="#990000">.</font>type<font color="#FF0000">}</font><font color="#990000">=</font>$<font color="#FF0000">{</font>value<font color="#FF0000">}</font>`<font color="#990000">);</font>
+      subsidiary<font color="#990000">.</font>entries<font color="#990000">.</font><b><font color="#000000">push</font></b><font color="#990000">([</font>`OID<font color="#990000">.</font>$<font color="#FF0000">{</font>dn<font color="#990000">.</font>type<font color="#FF0000">}</font>`<font color="#990000">,</font> value<font color="#990000">]);</font>
+    <font color="#FF0000">}</font> <b><font color="#0000FF">else</font></b> <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>distinguishedName<font color="#990000">.</font><font color="#009900">short</font> <font color="#990000">===</font> undefined<font color="#990000">)</font> <font color="#FF0000">{</font>
+      subsidiary<font color="#990000">.</font>dn<font color="#990000">.</font><b><font color="#000000">push</font></b><font color="#990000">(</font>`OID<font color="#990000">.</font>$<font color="#FF0000">{</font>dn<font color="#990000">.</font>type<font color="#FF0000">}</font><font color="#990000">=</font>$<font color="#FF0000">{</font>value<font color="#FF0000">}</font>`<font color="#990000">);</font>
+      subsidiary<font color="#990000">.</font>entries<font color="#990000">.</font><b><font color="#000000">push</font></b><font color="#990000">([</font>distinguishedName<font color="#990000">.</font><font color="#009900">long</font><font color="#990000">,</font> value<font color="#990000">]);</font>
+    <font color="#FF0000">}</font> <b><font color="#0000FF">else</font></b> <font color="#FF0000">{</font>
+      subsidiary<font color="#990000">.</font>dn<font color="#990000">.</font><b><font color="#000000">push</font></b><font color="#990000">(</font>`$<font color="#FF0000">{</font>distinguishedName<font color="#990000">.</font><font color="#009900">short</font><font color="#FF0000">}</font><font color="#990000">=</font>$<font color="#FF0000">{</font>value<font color="#FF0000">}</font>`<font color="#990000">);</font>
+      subsidiary<font color="#990000">.</font>entries<font color="#990000">.</font><b><font color="#000000">push</font></b><font color="#990000">([</font>distinguishedName<font color="#990000">.</font><font color="#009900">long</font><font color="#990000">,</font> value<font color="#990000">]);</font>
+
+      <i><font color="#9A1900">// add the common name for tab display</font></i>
+      <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>distinguishedName<font color="#990000">.</font><font color="#009900">short</font> <font color="#990000">===</font> <font color="#FF0000">"cn"</font><font color="#990000">)</font> <font color="#FF0000">{</font>
+        subsidiary<font color="#990000">.</font>cn <font color="#990000">=</font> value<font color="#990000">;</font>
+      <font color="#FF0000">}</font>
+    <font color="#FF0000">}</font>
+  <font color="#FF0000">}</font><font color="#990000">);</font>
+
+  <i><font color="#9A1900">// turn path into a string</font></i>
+  subsidiary<font color="#990000">.</font>dn <font color="#990000">=</font> subsidiary<font color="#990000">.</font>dn<font color="#990000">.</font><b><font color="#000000">join</font></b><font color="#990000">(</font><font color="#FF0000">", "</font><font color="#990000">);</font>
+
+  <b><font color="#0000FF">return</font></b> subsidiary<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> getSubjectAltNames <font color="#990000">=</font> <font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">)</font> <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <font color="#008080">let</font> san <font color="#990000">=</font> <b><font color="#000000">getX509Ext</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">,</font> <font color="#FF0000">"2.5.29.17"</font><font color="#990000">);</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>san <font color="#990000">&amp;&amp;</font> san<font color="#990000">.</font><b><font color="#000000">hasOwnProperty</font></b><font color="#990000">(</font><font color="#FF0000">"altNames"</font><font color="#990000">))</font> <font color="#FF0000">{</font>
+    san <font color="#990000">=</font> Object<font color="#990000">.</font><b><font color="#000000">keys</font></b><font color="#990000">(</font>san<font color="#990000">.</font>altNames<font color="#990000">).</font><b><font color="#000000">map</font></b><font color="#990000">(</font>index <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+      <b><font color="#0000FF">const</font></b> type <font color="#990000">=</font> san<font color="#990000">.</font>altNames<font color="#990000">[</font>index<font color="#990000">].</font>type<font color="#990000">;</font>
+
+      <b><font color="#0000FF">switch</font></b> <font color="#990000">(</font>type<font color="#990000">)</font> <font color="#FF0000">{</font>
+        <b><font color="#0000FF">case</font></b> <font color="#993399">4</font><font color="#990000">:</font> <i><font color="#9A1900">// directory</font></i>
+          <b><font color="#0000FF">return</font></b> <font color="#990000">[</font>
+            strings<font color="#990000">.</font>san<font color="#990000">[</font>type<font color="#990000">],</font>
+            <b><font color="#000000">parseSubsidiary</font></b><font color="#990000">(</font>san<font color="#990000">.</font>altNames<font color="#990000">[</font>index<font color="#990000">].</font>value<font color="#990000">.</font>typesAndValues<font color="#990000">).</font>dn<font color="#990000">,</font>
+          <font color="#990000">];</font>
+        <b><font color="#0000FF">case</font></b> <font color="#993399">7</font><font color="#990000">:</font> <i><font color="#9A1900">// ip address</font></i>
+          <font color="#008080">let</font> address <font color="#990000">=</font> san<font color="#990000">.</font>altNames<font color="#990000">[</font>index<font color="#990000">].</font>value<font color="#990000">.</font>valueBlock<font color="#990000">.</font>valueHex<font color="#990000">;</font>
+
+          <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>address<font color="#990000">.</font>length <font color="#990000">===</font> <font color="#993399">8</font><font color="#990000">)</font> <font color="#FF0000">{</font>
+            <i><font color="#9A1900">// ipv4</font></i>
+            <b><font color="#0000FF">return</font></b> <font color="#990000">[</font>
+              strings<font color="#990000">.</font>san<font color="#990000">[</font>type<font color="#990000">],</font>
+              address
+                <font color="#990000">.</font><b><font color="#000000">match</font></b><font color="#990000">(/.</font><font color="#FF0000">{</font><font color="#993399">1</font><font color="#990000">,</font><font color="#993399">2</font><font color="#FF0000">}</font><font color="#990000">/</font>g<font color="#990000">)</font>
+                <font color="#990000">.</font><b><font color="#000000">map</font></b><font color="#990000">(</font>x <font color="#990000">=&gt;</font> <b><font color="#000000">parseInt</font></b><font color="#990000">(</font>x<font color="#990000">,</font> <font color="#993399">16</font><font color="#990000">))</font>
+                <font color="#990000">.</font><b><font color="#000000">join</font></b><font color="#990000">(</font><font color="#FF0000">"."</font><font color="#990000">),</font>
+            <font color="#990000">];</font>
+          <font color="#FF0000">}</font> <b><font color="#0000FF">else</font></b> <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>address<font color="#990000">.</font>length <font color="#990000">===</font> <font color="#993399">32</font><font color="#990000">)</font> <font color="#FF0000">{</font>
+            <i><font color="#9A1900">// ipv6</font></i>
+            <b><font color="#0000FF">return</font></b> <font color="#990000">[</font>
+              strings<font color="#990000">.</font>san<font color="#990000">[</font>type<font color="#990000">],</font>
+              address
+                <font color="#990000">.</font><b><font color="#000000">toLowerCase</font></b><font color="#990000">()</font>
+                <font color="#990000">.</font><b><font color="#000000">match</font></b><font color="#990000">(/.</font><font color="#FF0000">{</font><font color="#993399">1</font><font color="#990000">,</font><font color="#993399">4</font><font color="#FF0000">}</font><font color="#990000">/</font>g<font color="#990000">)</font>
+                <font color="#990000">.</font><b><font color="#000000">join</font></b><font color="#990000">(</font><font color="#FF0000">":"</font><font color="#990000">)</font>
+                <font color="#990000">.</font><b><font color="#000000">replace</font></b><font color="#990000">(/\</font>b<font color="#990000">:?(?:</font><font color="#993399">0</font><font color="#990000">+:?)</font><font color="#FF0000">{</font><font color="#993399">2</font><font color="#990000">,</font><font color="#FF0000">}</font><font color="#990000">/,</font> <font color="#FF0000">"::"</font><font color="#990000">),</font>
+            <font color="#990000">];</font>
+          <font color="#FF0000">}</font>
+          <b><font color="#0000FF">return</font></b> <font color="#990000">[</font>strings<font color="#990000">.</font>san<font color="#990000">[</font>type<font color="#990000">],</font> <font color="#FF0000">"Unknown IP address"</font><font color="#990000">];</font>
+
+        <b><font color="#0000FF">default</font></b><font color="#990000">:</font>
+          <b><font color="#0000FF">return</font></b> <font color="#990000">[</font>strings<font color="#990000">.</font>san<font color="#990000">[</font>type<font color="#990000">],</font> san<font color="#990000">.</font>altNames<font color="#990000">[</font>index<font color="#990000">].</font>value<font color="#990000">];</font>
+      <font color="#FF0000">}</font>
+    <font color="#FF0000">}</font><font color="#990000">);</font>
+  <font color="#FF0000">}</font> <b><font color="#0000FF">else</font></b> <font color="#FF0000">{</font>
+    san <font color="#990000">=</font> <font color="#990000">[];</font>
+  <font color="#FF0000">}</font>
+  san <font color="#990000">=</font> <font color="#FF0000">{</font>
+    altNames<font color="#990000">:</font> san<font color="#990000">,</font>
+    critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"2.5.29.17"</font><font color="#990000">),</font>
+  <font color="#FF0000">}</font><font color="#990000">;</font>
+  <b><font color="#0000FF">return</font></b> san<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> getBasicConstraints <font color="#990000">=</font> <font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">)</font> <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <font color="#008080">let</font> basicConstraints<font color="#990000">;</font>
+  <b><font color="#0000FF">const</font></b> basicConstraintsExt <font color="#990000">=</font> <b><font color="#000000">getX509Ext</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">,</font> <font color="#FF0000">"2.5.29.19"</font><font color="#990000">);</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>basicConstraintsExt<font color="#990000">)</font> <font color="#FF0000">{</font>
+    basicConstraints <font color="#990000">=</font> <font color="#FF0000">{</font>
+      cA<font color="#990000">:</font> basicConstraintsExt<font color="#990000">.</font>cA <font color="#990000">!==</font> undefined <font color="#990000">&amp;&amp;</font> basicConstraintsExt<font color="#990000">.</font>cA<font color="#990000">,</font>
+      critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"2.5.29.19"</font><font color="#990000">),</font>
+    <font color="#FF0000">}</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+  <b><font color="#0000FF">return</font></b> basicConstraints<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> getEKeyUsages <font color="#990000">=</font> <font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">)</font> <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <font color="#008080">let</font> eKeyUsages <font color="#990000">=</font> <b><font color="#000000">getX509Ext</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">,</font> <font color="#FF0000">"2.5.29.37"</font><font color="#990000">);</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>eKeyUsages<font color="#990000">)</font> <font color="#FF0000">{</font>
+    eKeyUsages <font color="#990000">=</font> <font color="#FF0000">{</font>
+      critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"2.5.29.37"</font><font color="#990000">),</font>
+      purposes<font color="#990000">:</font> eKeyUsages<font color="#990000">.</font>keyPurposes<font color="#990000">.</font><b><font color="#000000">map</font></b><font color="#990000">(</font>x <font color="#990000">=&gt;</font> strings<font color="#990000">.</font>eKU<font color="#990000">[</font>x<font color="#990000">]</font> <font color="#990000">||</font> x<font color="#990000">),</font>
+    <font color="#FF0000">}</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+  <b><font color="#0000FF">return</font></b> eKeyUsages<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> getSubjectKeyID <font color="#990000">=</font> <font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">)</font> <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <font color="#008080">let</font> sKID <font color="#990000">=</font> <b><font color="#000000">getX509Ext</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">,</font> <font color="#FF0000">"2.5.29.14"</font><font color="#990000">);</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>sKID<font color="#990000">)</font> <font color="#FF0000">{</font>
+    sKID <font color="#990000">=</font> <font color="#FF0000">{</font>
+      critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"2.5.29.14"</font><font color="#990000">),</font>
+      id<font color="#990000">:</font> <b><font color="#000000">hashify</font></b><font color="#990000">(</font>sKID<font color="#990000">.</font>valueBlock<font color="#990000">.</font>valueHex<font color="#990000">),</font>
+    <font color="#FF0000">}</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+  <b><font color="#0000FF">return</font></b> sKID<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> getAuthorityKeyID <font color="#990000">=</font> <font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">)</font> <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <font color="#008080">let</font> aKID <font color="#990000">=</font> <b><font color="#000000">getX509Ext</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">,</font> <font color="#FF0000">"2.5.29.35"</font><font color="#990000">);</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(!</font>aKID <font color="#990000">||</font> <font color="#990000">!</font>aKID<font color="#990000">.</font>keyIdentifier<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">return</font></b> <b><font color="#0000FF">null</font></b><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+  aKID <font color="#990000">=</font> <font color="#FF0000">{</font>
+    critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"2.5.29.35"</font><font color="#990000">),</font>
+    id<font color="#990000">:</font> <b><font color="#000000">hashify</font></b><font color="#990000">(</font>aKID<font color="#990000">.</font>keyIdentifier<font color="#990000">.</font>valueBlock<font color="#990000">.</font>valueHex<font color="#990000">),</font>
+  <font color="#FF0000">}</font><font color="#990000">;</font>
+  <b><font color="#0000FF">return</font></b> aKID<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> getCRLPoints <font color="#990000">=</font> <font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">)</font> <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <font color="#008080">let</font> crlPoints <font color="#990000">=</font> <b><font color="#000000">getX509Ext</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">,</font> <font color="#FF0000">"2.5.29.31"</font><font color="#990000">);</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>crlPoints<font color="#990000">)</font> <font color="#FF0000">{</font>
+    crlPoints <font color="#990000">=</font> <font color="#FF0000">{</font>
+      critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"2.5.29.31"</font><font color="#990000">),</font>
+      points<font color="#990000">:</font> crlPoints<font color="#990000">.</font>distributionPoints<font color="#990000">.</font><b><font color="#000000">map</font></b><font color="#990000">(</font>
+        x <font color="#990000">=&gt;</font> x<font color="#990000">.</font>distributionPoint<font color="#990000">[</font><font color="#993399">0</font><font color="#990000">].</font>value
+      <font color="#990000">),</font>
+    <font color="#FF0000">}</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+  <b><font color="#0000FF">return</font></b> crlPoints<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> getOcspStaple <font color="#990000">=</font> <font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">)</font> <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <font color="#008080">let</font> ocspStaple <font color="#990000">=</font> <b><font color="#000000">getX509Ext</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">,</font> <font color="#FF0000">"1.3.6.1.5.5.7.1.24"</font><font color="#990000">);</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>ocspStaple <font color="#990000">&amp;&amp;</font> ocspStaple<font color="#990000">.</font>valueBeforeDecode <font color="#990000">===</font> <font color="#FF0000">"3003020105"</font><font color="#990000">)</font> <font color="#FF0000">{</font>
+    ocspStaple <font color="#990000">=</font> <font color="#FF0000">{</font>
+      critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"1.3.6.1.5.5.7.1.24"</font><font color="#990000">),</font>
+      required<font color="#990000">:</font> <b><font color="#0000FF">true</font></b><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font> <b><font color="#0000FF">else</font></b> <font color="#FF0000">{</font>
+    ocspStaple <font color="#990000">=</font> <font color="#FF0000">{</font>
+      critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"1.3.6.1.5.5.7.1.24"</font><font color="#990000">),</font>
+      required<font color="#990000">:</font> <b><font color="#0000FF">false</font></b><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+  <b><font color="#0000FF">return</font></b> ocspStaple<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> getAuthorityInfoAccess <font color="#990000">=</font> <font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">)</font> <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <font color="#008080">let</font> aia <font color="#990000">=</font> <b><font color="#000000">getX509Ext</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">,</font> <font color="#FF0000">"1.3.6.1.5.5.7.1.1"</font><font color="#990000">);</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>aia<font color="#990000">)</font> <font color="#FF0000">{</font>
+    aia <font color="#990000">=</font> aia<font color="#990000">.</font>accessDescriptions<font color="#990000">.</font><b><font color="#000000">map</font></b><font color="#990000">(</font>x <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+      <b><font color="#0000FF">return</font></b> <font color="#FF0000">{</font>
+        location<font color="#990000">:</font> x<font color="#990000">.</font>accessLocation<font color="#990000">.</font>value<font color="#990000">,</font>
+        method<font color="#990000">:</font> strings<font color="#990000">.</font>aia<font color="#990000">[</font>x<font color="#990000">.</font>accessMethod<font color="#990000">],</font>
+      <font color="#FF0000">}</font><font color="#990000">;</font>
+    <font color="#FF0000">}</font><font color="#990000">);</font>
+  <font color="#FF0000">}</font>
+
+  aia <font color="#990000">=</font> <font color="#FF0000">{</font>
+    descriptions<font color="#990000">:</font> aia<font color="#990000">,</font>
+    critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"1.3.6.1.5.5.7.1.1"</font><font color="#990000">),</font>
+  <font color="#FF0000">}</font><font color="#990000">;</font>
+  <b><font color="#0000FF">return</font></b> aia<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> getSCTs <font color="#990000">=</font> <font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">)</font> <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <font color="#008080">let</font> scts <font color="#990000">=</font> <b><font color="#000000">getX509Ext</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">,</font> <font color="#FF0000">"1.3.6.1.4.1.11129.2.4.2"</font><font color="#990000">);</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>scts<font color="#990000">)</font> <font color="#FF0000">{</font>
+    scts <font color="#990000">=</font> Object<font color="#990000">.</font><b><font color="#000000">keys</font></b><font color="#990000">(</font>scts<font color="#990000">.</font>timestamps<font color="#990000">).</font><b><font color="#000000">map</font></b><font color="#990000">(</font>x <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+      <font color="#008080">let</font> logId <font color="#990000">=</font> scts<font color="#990000">.</font>timestamps<font color="#990000">[</font>x<font color="#990000">].</font>logID<font color="#990000">.</font><b><font color="#000000">toLowerCase</font></b><font color="#990000">();</font>
+      <font color="#008080">let</font> sctsTimestamp <font color="#990000">=</font> scts<font color="#990000">.</font>timestamps<font color="#990000">[</font>x<font color="#990000">].</font>timestamp<font color="#990000">;</font>
+      <b><font color="#0000FF">return</font></b> <font color="#FF0000">{</font>
+        logId<font color="#990000">:</font> <b><font color="#000000">hashify</font></b><font color="#990000">(</font>logId<font color="#990000">),</font>
+        name<font color="#990000">:</font> ctLogNames<font color="#990000">.</font><b><font color="#000000">hasOwnProperty</font></b><font color="#990000">(</font>logId<font color="#990000">)</font> <font color="#990000">?</font> ctLogNames<font color="#990000">[</font>logId<font color="#990000">]</font> <font color="#990000">:</font> undefined<font color="#990000">,</font>
+        signatureAlgorithm<font color="#990000">:</font> `$<font color="#FF0000">{</font>scts<font color="#990000">.</font>timestamps<font color="#990000">[</font>x<font color="#990000">].</font>hashAlgorithm<font color="#990000">.</font><b><font color="#000000">replace</font></b><font color="#990000">(</font>
+          <font color="#FF0000">"sha"</font><font color="#990000">,</font>
+          <font color="#FF0000">"SHA-"</font>
+        <font color="#990000">)</font><font color="#FF0000">}</font> $<font color="#FF0000">{</font>scts<font color="#990000">.</font>timestamps<font color="#990000">[</font>x<font color="#990000">].</font>signatureAlgorithm<font color="#990000">.</font><b><font color="#000000">toUpperCase</font></b><font color="#990000">()</font><font color="#FF0000">}</font>`<font color="#990000">,</font>
+        timestamp<font color="#990000">:</font> `$<font color="#FF0000">{</font>sctsTimestamp<font color="#990000">.</font><b><font color="#000000">toLocaleString</font></b><font color="#990000">()</font><font color="#FF0000">}</font> <font color="#990000">(</font>$<font color="#FF0000">{</font><b><font color="#000000">getTimeZone</font></b><font color="#990000">()</font><font color="#FF0000">}</font><font color="#990000">)</font>`<font color="#990000">,</font>
+        timestampUTC<font color="#990000">:</font> sctsTimestamp<font color="#990000">.</font><b><font color="#000000">toUTCString</font></b><font color="#990000">(),</font>
+        version<font color="#990000">:</font> scts<font color="#990000">.</font>timestamps<font color="#990000">[</font>x<font color="#990000">].</font>version <font color="#990000">+</font> <font color="#993399">1</font><font color="#990000">,</font>
+      <font color="#FF0000">}</font><font color="#990000">;</font>
+    <font color="#FF0000">}</font><font color="#990000">);</font>
+  <font color="#FF0000">}</font> <b><font color="#0000FF">else</font></b> <font color="#FF0000">{</font>
+    scts <font color="#990000">=</font> <font color="#990000">[];</font>
+  <font color="#FF0000">}</font>
+
+  scts <font color="#990000">=</font> <font color="#FF0000">{</font>
+    critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"1.3.6.1.4.1.11129.2.4.2"</font><font color="#990000">),</font>
+    timestamps<font color="#990000">:</font> scts<font color="#990000">,</font>
+  <font color="#FF0000">}</font><font color="#990000">;</font>
+  <b><font color="#0000FF">return</font></b> scts<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> getCertificatePolicies <font color="#990000">=</font> <font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">)</font> <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <font color="#008080">let</font> cp <font color="#990000">=</font> <b><font color="#000000">getX509Ext</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">,</font> <font color="#FF0000">"2.5.29.32"</font><font color="#990000">);</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>cp <font color="#990000">&amp;&amp;</font> cp<font color="#990000">.</font><b><font color="#000000">hasOwnProperty</font></b><font color="#990000">(</font><font color="#FF0000">"certificatePolicies"</font><font color="#990000">))</font> <font color="#FF0000">{</font>
+    cp <font color="#990000">=</font> cp<font color="#990000">.</font>certificatePolicies<font color="#990000">.</font><b><font color="#000000">map</font></b><font color="#990000">(</font>x <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+      <font color="#008080">let</font> id <font color="#990000">=</font> x<font color="#990000">.</font>policyIdentifier<font color="#990000">;</font>
+      <font color="#008080">let</font> certName <font color="#990000">=</font> strings<font color="#990000">.</font>cps<font color="#990000">.</font><b><font color="#000000">hasOwnProperty</font></b><font color="#990000">(</font>id<font color="#990000">)</font>
+        <font color="#990000">?</font> strings<font color="#990000">.</font>cps<font color="#990000">[</font>id<font color="#990000">].</font>name
+        <font color="#990000">:</font> undefined<font color="#990000">;</font>
+      <font color="#008080">let</font> qualifiers <font color="#990000">=</font> undefined<font color="#990000">;</font>
+      <font color="#008080">let</font> value <font color="#990000">=</font> strings<font color="#990000">.</font>cps<font color="#990000">.</font><b><font color="#000000">hasOwnProperty</font></b><font color="#990000">(</font>id<font color="#990000">)</font>
+        <font color="#990000">?</font> strings<font color="#990000">.</font>cps<font color="#990000">[</font>id<font color="#990000">].</font>value
+        <font color="#990000">:</font> undefined<font color="#990000">;</font>
+
+      <i><font color="#9A1900">// ansi organization identifiers</font></i>
+      <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>id<font color="#990000">.</font><b><font color="#000000">startsWith</font></b><font color="#990000">(</font><font color="#FF0000">"2.16.840."</font><font color="#990000">))</font> <font color="#FF0000">{</font>
+        value <font color="#990000">=</font> id<font color="#990000">;</font>
+        id <font color="#990000">=</font> <font color="#FF0000">"2.16.840"</font><font color="#990000">;</font>
+        certName <font color="#990000">=</font> strings<font color="#990000">.</font>cps<font color="#990000">[</font><font color="#FF0000">"2.16.840"</font><font color="#990000">].</font>name<font color="#990000">;</font>
+      <font color="#FF0000">}</font>
+
+      <i><font color="#9A1900">// statement identifiers</font></i>
+      <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>id<font color="#990000">.</font><b><font color="#000000">startsWith</font></b><font color="#990000">(</font><font color="#FF0000">"1.3.6.1.4.1"</font><font color="#990000">))</font> <font color="#FF0000">{</font>
+        value <font color="#990000">=</font> id<font color="#990000">;</font>
+        id <font color="#990000">=</font> <font color="#FF0000">"1.3.6.1.4.1"</font><font color="#990000">;</font>
+        certName <font color="#990000">=</font> strings<font color="#990000">.</font>cps<font color="#990000">[</font><font color="#FF0000">"1.3.6.1.4.1"</font><font color="#990000">].</font>name<font color="#990000">;</font>
+      <font color="#FF0000">}</font>
+
+      <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>x<font color="#990000">.</font><b><font color="#000000">hasOwnProperty</font></b><font color="#990000">(</font><font color="#FF0000">"policyQualifiers"</font><font color="#990000">))</font> <font color="#FF0000">{</font>
+        qualifiers <font color="#990000">=</font> x<font color="#990000">.</font>policyQualifiers<font color="#990000">.</font><b><font color="#000000">map</font></b><font color="#990000">(</font>qualifier <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+          <font color="#008080">let</font> qualifierId <font color="#990000">=</font> qualifier<font color="#990000">.</font>policyQualifierId<font color="#990000">;</font>
+          <font color="#008080">let</font> qualifierName <font color="#990000">=</font> strings<font color="#990000">.</font>cps<font color="#990000">.</font><b><font color="#000000">hasOwnProperty</font></b><font color="#990000">(</font>qualifierId<font color="#990000">)</font>
+            <font color="#990000">?</font> strings<font color="#990000">.</font>cps<font color="#990000">[</font>qualifierId<font color="#990000">].</font>name
+            <font color="#990000">:</font> undefined<font color="#990000">;</font>
+          <font color="#008080">let</font> qualifierValue <font color="#990000">=</font> qualifier<font color="#990000">.</font>qualifier<font color="#990000">.</font>valueBlock<font color="#990000">.</font>value<font color="#990000">;</font>
+
+          <i><font color="#9A1900">// sometimes they are multiple qualifier subblocks, and for now we'll</font></i>
+          <i><font color="#9A1900">// only return the first one because it's getting really messy at this point</font></i>
+          <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>Array<font color="#990000">.</font><b><font color="#000000">isArray</font></b><font color="#990000">(</font>qualifierValue<font color="#990000">)</font> <font color="#990000">&amp;&amp;</font> qualifierValue<font color="#990000">.</font>length <font color="#990000">===</font> <font color="#993399">1</font><font color="#990000">)</font> <font color="#FF0000">{</font>
+            qualifierValue <font color="#990000">=</font> qualifierValue<font color="#990000">[</font><font color="#993399">0</font><font color="#990000">].</font>valueBlock<font color="#990000">.</font>value<font color="#990000">;</font>
+          <font color="#FF0000">}</font> <b><font color="#0000FF">else</font></b> <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>
+            Array<font color="#990000">.</font><b><font color="#000000">isArray</font></b><font color="#990000">(</font>qualifierValue<font color="#990000">)</font> <font color="#990000">&amp;&amp;</font>
+            qualifierValue<font color="#990000">.</font>length <font color="#990000">&gt;</font> <font color="#993399">1</font>
+          <font color="#990000">)</font> <font color="#FF0000">{</font>
+            qualifierValue <font color="#990000">=</font> <font color="#FF0000">"(currently unsupported)"</font><font color="#990000">;</font>
+          <font color="#FF0000">}</font>
+
+          <b><font color="#0000FF">return</font></b> <font color="#FF0000">{</font>
+            qualifierId<font color="#990000">,</font>
+            qualifierName<font color="#990000">,</font>
+            qualifierValue<font color="#990000">,</font>
+          <font color="#FF0000">}</font><font color="#990000">;</font>
+        <font color="#FF0000">}</font><font color="#990000">);</font>
+      <font color="#FF0000">}</font>
+
+      <b><font color="#0000FF">return</font></b> <font color="#FF0000">{</font>
+        id<font color="#990000">,</font>
+        name<font color="#990000">:</font> certName<font color="#990000">,</font>
+        qualifiers<font color="#990000">,</font>
+        value<font color="#990000">,</font>
+      <font color="#FF0000">}</font><font color="#990000">;</font>
+    <font color="#FF0000">}</font><font color="#990000">);</font>
+  <font color="#FF0000">}</font>
+
+  cp <font color="#990000">=</font> <font color="#FF0000">{</font>
+    critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"2.5.29.32"</font><font color="#990000">),</font>
+    policies<font color="#990000">:</font> cp<font color="#990000">,</font>
+  <font color="#FF0000">}</font><font color="#990000">;</font>
+  <b><font color="#0000FF">return</font></b> cp<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> getMicrosoftCryptographicExtensions <font color="#990000">=</font> <font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">)</font> <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <i><font color="#9A1900">// now let's parse the Microsoft cryptographic extensions</font></i>
+  <font color="#008080">let</font> msCrypto <font color="#990000">=</font> <font color="#FF0000">{</font>
+    caVersion<font color="#990000">:</font> <b><font color="#000000">getX509Ext</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">,</font> <font color="#FF0000">"1.3.6.1.4.1.311.21.1"</font><font color="#990000">),</font>
+    certificatePolicies<font color="#990000">:</font> <b><font color="#000000">getX509Ext</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">,</font> <font color="#FF0000">"1.3.6.1.4.1.311.21.10"</font><font color="#990000">),</font>
+    certificateTemplate<font color="#990000">:</font> <b><font color="#000000">getX509Ext</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">,</font> <font color="#FF0000">"1.3.6.1.4.1.311.21.7"</font><font color="#990000">),</font>
+    certificateType<font color="#990000">:</font> <b><font color="#000000">getX509Ext</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">,</font> <font color="#FF0000">"1.3.6.1.4.1.311.20.2"</font><font color="#990000">),</font>
+    previousHash<font color="#990000">:</font> <b><font color="#000000">getX509Ext</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">,</font> <font color="#FF0000">"1.3.6.1.4.1.311.21.2"</font><font color="#990000">),</font>
+  <font color="#FF0000">}</font><font color="#990000">;</font>
+
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>
+    msCrypto<font color="#990000">.</font>caVersion <font color="#990000">&amp;&amp;</font>
+    Number<font color="#990000">.</font><b><font color="#000000">isInteger</font></b><font color="#990000">(</font>msCrypto<font color="#990000">.</font>caVersion<font color="#990000">.</font>keyIndex<font color="#990000">)</font> <font color="#990000">&amp;&amp;</font>
+    Number<font color="#990000">.</font><b><font color="#000000">isInteger</font></b><font color="#990000">(</font>msCrypto<font color="#990000">.</font>caVersion<font color="#990000">.</font>certificateIndex<font color="#990000">)</font>
+  <font color="#990000">)</font> <font color="#FF0000">{</font>
+    msCrypto<font color="#990000">.</font>caVersion <font color="#990000">=</font> <font color="#FF0000">{</font>
+      critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"1.3.6.1.4.1.311.21.1"</font><font color="#990000">),</font>
+      caRenewals<font color="#990000">:</font> msCrypto<font color="#990000">.</font>caVersion<font color="#990000">.</font>certificateIndex<font color="#990000">,</font>
+      keyReuses<font color="#990000">:</font>
+        msCrypto<font color="#990000">.</font>caVersion<font color="#990000">.</font>certificateIndex <font color="#990000">-</font> msCrypto<font color="#990000">.</font>caVersion<font color="#990000">.</font>keyIndex<font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>msCrypto<font color="#990000">.</font>certificatePolicies<font color="#990000">)</font> <font color="#FF0000">{</font>
+    msCrypto<font color="#990000">.</font>certificatePolicies <font color="#990000">=</font> <font color="#FF0000">{</font>
+      critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"1.3.6.1.4.1.311.21.10"</font><font color="#990000">),</font>
+      purposes<font color="#990000">:</font> msCrypto<font color="#990000">.</font>certificatePolicies<font color="#990000">.</font>certificatePolicies<font color="#990000">.</font><b><font color="#000000">map</font></b><font color="#990000">(</font>
+        x <font color="#990000">=&gt;</font> strings<font color="#990000">.</font>eKU<font color="#990000">[</font>x<font color="#990000">.</font>policyIdentifier<font color="#990000">]</font> <font color="#990000">||</font> x<font color="#990000">.</font>policyIdentifier
+      <font color="#990000">),</font>
+    <font color="#FF0000">}</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>msCrypto<font color="#990000">.</font>certificateTemplate<font color="#990000">)</font> <font color="#FF0000">{</font>
+    msCrypto<font color="#990000">.</font>certificateTemplate <font color="#990000">=</font> <font color="#FF0000">{</font>
+      critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"1.3.6.1.4.1.311.21.7"</font><font color="#990000">),</font>
+      id<font color="#990000">:</font> msCrypto<font color="#990000">.</font>certificateTemplate<font color="#990000">.</font>extnID<font color="#990000">,</font>
+      major<font color="#990000">:</font> msCrypto<font color="#990000">.</font>certificateTemplate<font color="#990000">.</font>templateMajorVersion<font color="#990000">,</font>
+      minor<font color="#990000">:</font> msCrypto<font color="#990000">.</font>certificateTemplate<font color="#990000">.</font>templateMinorVersion<font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>msCrypto<font color="#990000">.</font>certificateType<font color="#990000">)</font> <font color="#FF0000">{</font>
+    msCrypto<font color="#990000">.</font>certificateType <font color="#990000">=</font> <font color="#FF0000">{</font>
+      critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"1.3.6.1.4.1.311.20.2"</font><font color="#990000">),</font>
+      type<font color="#990000">:</font>
+        strings<font color="#990000">.</font>microsoftCertificateTypes<font color="#990000">[</font>
+          msCrypto<font color="#990000">.</font>certificateType<font color="#990000">.</font>valueBlock<font color="#990000">.</font>value
+        <font color="#990000">]</font> <font color="#990000">||</font> <font color="#FF0000">"Unknown"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>msCrypto<font color="#990000">.</font>previousHash<font color="#990000">)</font> <font color="#FF0000">{</font>
+    msCrypto<font color="#990000">.</font>previousHash <font color="#990000">=</font> <font color="#FF0000">{</font>
+      critical<font color="#990000">:</font> criticalExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font><font color="#FF0000">"1.3.6.1.4.1.311.21.2"</font><font color="#990000">),</font>
+      previousHash<font color="#990000">:</font> <b><font color="#000000">hashify</font></b><font color="#990000">(</font>msCrypto<font color="#990000">.</font>previousHash<font color="#990000">.</font>valueBlock<font color="#990000">.</font>valueHex<font color="#990000">),</font>
+    <font color="#FF0000">}</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+
+  msCrypto<font color="#990000">.</font>exists <font color="#990000">=</font> <font color="#990000">!!(</font>
+    msCrypto<font color="#990000">.</font>caVersion <font color="#990000">||</font>
+    msCrypto<font color="#990000">.</font>certificatePolicies <font color="#990000">||</font>
+    msCrypto<font color="#990000">.</font>certificateTemplate <font color="#990000">||</font>
+    msCrypto<font color="#990000">.</font>certificateType <font color="#990000">||</font>
+    msCrypto<font color="#990000">.</font>previousHash
+  <font color="#990000">);</font>
+
+  <b><font color="#0000FF">return</font></b> msCrypto<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> b64ToPEM <font color="#990000">=</font> string <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <font color="#008080">let</font> wrapped <font color="#990000">=</font> string<font color="#990000">.</font><b><font color="#000000">match</font></b><font color="#990000">(/.</font><font color="#FF0000">{</font><font color="#993399">1</font><font color="#990000">,</font><font color="#993399">64</font><font color="#FF0000">}</font><font color="#990000">/</font>g<font color="#990000">).</font><b><font color="#000000">join</font></b><font color="#990000">(</font><font color="#FF0000">"</font><font color="#CC33CC">\r\n</font><font color="#FF0000">"</font><font color="#990000">);</font>
+  <b><font color="#0000FF">return</font></b> `<font color="#990000">-----</font><font color="#008080">BEGIN</font> CERTIFICATE<font color="#990000">-----\</font>r<font color="#990000">\</font>n$<font color="#FF0000">{</font>wrapped<font color="#FF0000">}</font><font color="#990000">\</font>r<font color="#990000">\</font>n<font color="#990000">-----</font><font color="#008080">END</font> CERTIFICATE<font color="#990000">-----\</font>r<font color="#990000">\</font>n`<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+export <font color="#008080">const</font> parse <font color="#990000">=</font> <font color="#008080">async</font> certificate <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <i><font color="#9A1900">// certificate could be an array of BER or an array of buffers</font></i>
+  <b><font color="#0000FF">const</font></b> supportedExtensions <font color="#990000">=</font> <font color="#990000">[</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.20.2"</font><font color="#990000">,</font> <i><font color="#9A1900">// microsoft certificate type</font></i>
+    <font color="#FF0000">"1.3.6.1.4.1.311.21.2"</font><font color="#990000">,</font> <i><font color="#9A1900">// microsoft certificate previous hash</font></i>
+    <font color="#FF0000">"1.3.6.1.4.1.311.21.7"</font><font color="#990000">,</font> <i><font color="#9A1900">// microsoft certificate template</font></i>
+    <font color="#FF0000">"1.3.6.1.4.1.311.21.1"</font><font color="#990000">,</font> <i><font color="#9A1900">// microsoft certification authority renewal</font></i>
+    <font color="#FF0000">"1.3.6.1.4.1.311.21.10"</font><font color="#990000">,</font> <i><font color="#9A1900">// microsoft certificate policies</font></i>
+    <font color="#FF0000">"1.3.6.1.4.1.11129.2.4.2"</font><font color="#990000">,</font> <i><font color="#9A1900">// embedded scts</font></i>
+    <font color="#FF0000">"1.3.6.1.5.5.7.1.1"</font><font color="#990000">,</font> <i><font color="#9A1900">// authority info access</font></i>
+    <font color="#FF0000">"1.3.6.1.5.5.7.1.24"</font><font color="#990000">,</font> <i><font color="#9A1900">// ocsp stapling</font></i>
+    <font color="#FF0000">"1.3.101.77"</font><font color="#990000">,</font> <i><font color="#9A1900">// ct redaction - deprecated and not displayed</font></i>
+    <font color="#FF0000">"2.5.29.14"</font><font color="#990000">,</font> <i><font color="#9A1900">// subject key identifier</font></i>
+    <font color="#FF0000">"2.5.29.15"</font><font color="#990000">,</font> <i><font color="#9A1900">// key usages</font></i>
+    <font color="#FF0000">"2.5.29.17"</font><font color="#990000">,</font> <i><font color="#9A1900">// subject alt names</font></i>
+    <font color="#FF0000">"2.5.29.19"</font><font color="#990000">,</font> <i><font color="#9A1900">// basic constraints</font></i>
+    <font color="#FF0000">"2.5.29.31"</font><font color="#990000">,</font> <i><font color="#9A1900">// crl points</font></i>
+    <font color="#FF0000">"2.5.29.32"</font><font color="#990000">,</font> <i><font color="#9A1900">// certificate policies</font></i>
+    <font color="#FF0000">"2.5.29.35"</font><font color="#990000">,</font> <i><font color="#9A1900">// authority key identifier</font></i>
+    <font color="#FF0000">"2.5.29.37"</font><font color="#990000">,</font> <i><font color="#9A1900">// extended key usage</font></i>
+  <font color="#990000">];</font>
+
+  <font color="#008080">let</font> timeZone <font color="#990000">=</font> <b><font color="#000000">getTimeZone</font></b><font color="#990000">();</font>
+
+  <i><font color="#9A1900">// parse the certificate</font></i>
+  <font color="#008080">let</font> x509 <font color="#990000">=</font> Certificate<font color="#990000">.</font><b><font color="#000000">fromBER</font></b><font color="#990000">(</font>certificate<font color="#990000">);</font>
+
+  <i><font color="#9A1900">// convert the cert to PEM</font></i>
+  <b><font color="#0000FF">const</font></b> certPEM <font color="#990000">=</font> <b><font color="#000000">b64ToPEM</font></b><font color="#990000">(</font>
+    <b><font color="#000000">btoa</font></b><font color="#990000">(</font>String<font color="#990000">.</font>fromCharCode<font color="#990000">.</font><b><font color="#000000">apply</font></b><font color="#990000">(</font><b><font color="#0000FF">null</font></b><font color="#990000">,</font> <b><font color="#0000FF">new</font></b> <b><font color="#000000">Uint8Array</font></b><font color="#990000">(</font>certificate<font color="#990000">)))</font>
+  <font color="#990000">);</font>
+
+  <i><font color="#9A1900">// get which extensions are critical</font></i>
+  <b><font color="#0000FF">const</font></b> criticalExtensions <font color="#990000">=</font> <font color="#990000">[];</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">)</font> <font color="#FF0000">{</font>
+    x509<font color="#990000">.</font>extensions<font color="#990000">.</font><b><font color="#000000">forEach</font></b><font color="#990000">(</font>ext <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+      <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>ext<font color="#990000">.</font><b><font color="#000000">hasOwnProperty</font></b><font color="#990000">(</font><font color="#FF0000">"critical"</font><font color="#990000">)</font> <font color="#990000">&amp;&amp;</font> ext<font color="#990000">.</font>critical <font color="#990000">===</font> <b><font color="#0000FF">true</font></b><font color="#990000">)</font> <font color="#FF0000">{</font>
+        criticalExtensions<font color="#990000">.</font><b><font color="#000000">push</font></b><font color="#990000">(</font>ext<font color="#990000">.</font>extnID<font color="#990000">);</font>
+      <font color="#FF0000">}</font>
+    <font color="#FF0000">}</font><font color="#990000">);</font>
+  <font color="#FF0000">}</font>
+  <b><font color="#0000FF">const</font></b> spki <font color="#990000">=</font> <b><font color="#000000">getPublicKeyInfo</font></b><font color="#990000">(</font>x509<font color="#990000">);</font>
+  <b><font color="#0000FF">const</font></b> keyUsages <font color="#990000">=</font> <b><font color="#000000">getKeyUsages</font></b><font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">);</font>
+  <b><font color="#0000FF">const</font></b> san <font color="#990000">=</font> <b><font color="#000000">getSubjectAltNames</font></b><font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">);</font>
+  <b><font color="#0000FF">const</font></b> basicConstraints <font color="#990000">=</font> <b><font color="#000000">getBasicConstraints</font></b><font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">);</font>
+  <b><font color="#0000FF">const</font></b> eKeyUsages <font color="#990000">=</font> <b><font color="#000000">getEKeyUsages</font></b><font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">);</font>
+  <b><font color="#0000FF">const</font></b> sKID <font color="#990000">=</font> <b><font color="#000000">getSubjectKeyID</font></b><font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">);</font>
+  <b><font color="#0000FF">const</font></b> aKID <font color="#990000">=</font> <b><font color="#000000">getAuthorityKeyID</font></b><font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">);</font>
+  <b><font color="#0000FF">const</font></b> crlPoints <font color="#990000">=</font> <b><font color="#000000">getCRLPoints</font></b><font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">);</font>
+  <b><font color="#0000FF">const</font></b> ocspStaple <font color="#990000">=</font> <b><font color="#000000">getOcspStaple</font></b><font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">);</font>
+  <b><font color="#0000FF">const</font></b> aia <font color="#990000">=</font> <b><font color="#000000">getAuthorityInfoAccess</font></b><font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">);</font>
+  <b><font color="#0000FF">const</font></b> scts <font color="#990000">=</font> <b><font color="#000000">getSCTs</font></b><font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">);</font>
+  <b><font color="#0000FF">const</font></b> cp <font color="#990000">=</font> <b><font color="#000000">getCertificatePolicies</font></b><font color="#990000">(</font>x509<font color="#990000">,</font> criticalExtensions<font color="#990000">);</font>
+  <b><font color="#0000FF">const</font></b> msCrypto <font color="#990000">=</font> <b><font color="#000000">getMicrosoftCryptographicExtensions</font></b><font color="#990000">(</font>
+    x509<font color="#990000">,</font>
+    criticalExtensions
+  <font color="#990000">);</font>
+
+  <i><font color="#9A1900">// determine which extensions weren't supported</font></i>
+  <font color="#008080">let</font> unsupportedExtensions <font color="#990000">=</font> <font color="#990000">[];</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>x509<font color="#990000">.</font>extensions<font color="#990000">)</font> <font color="#FF0000">{</font>
+    x509<font color="#990000">.</font>extensions<font color="#990000">.</font><b><font color="#000000">forEach</font></b><font color="#990000">(</font>ext <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+      <b><font color="#0000FF">if</font></b> <font color="#990000">(!</font>supportedExtensions<font color="#990000">.</font><b><font color="#000000">includes</font></b><font color="#990000">(</font>ext<font color="#990000">.</font>extnID<font color="#990000">))</font> <font color="#FF0000">{</font>
+        unsupportedExtensions<font color="#990000">.</font><b><font color="#000000">push</font></b><font color="#990000">(</font>ext<font color="#990000">.</font>extnID<font color="#990000">);</font>
+      <font color="#FF0000">}</font>
+    <font color="#FF0000">}</font><font color="#990000">);</font>
+  <font color="#FF0000">}</font>
+
+  <i><font color="#9A1900">// the output shell</font></i>
+  <b><font color="#0000FF">return</font></b> <font color="#FF0000">{</font>
+    ext<font color="#990000">:</font> <font color="#FF0000">{</font>
+      aia<font color="#990000">,</font>
+      aKID<font color="#990000">,</font>
+      basicConstraints<font color="#990000">,</font>
+      crlPoints<font color="#990000">,</font>
+      cp<font color="#990000">,</font>
+      eKeyUsages<font color="#990000">,</font>
+      keyUsages<font color="#990000">,</font>
+      msCrypto<font color="#990000">,</font>
+      ocspStaple<font color="#990000">,</font>
+      scts<font color="#990000">,</font>
+      sKID<font color="#990000">,</font>
+      san<font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    files<font color="#990000">:</font> <font color="#FF0000">{</font>
+      der<font color="#990000">:</font> undefined<font color="#990000">,</font> <i><font color="#9A1900">// TODO: implement!</font></i>
+      pem<font color="#990000">:</font> <b><font color="#000000">encodeURI</font></b><font color="#990000">(</font>certPEM<font color="#990000">),</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    fingerprint<font color="#990000">:</font> <font color="#FF0000">{</font>
+      sha1<font color="#990000">:</font> <font color="#008080">await</font> <b><font color="#000000">hash</font></b><font color="#990000">(</font><font color="#FF0000">"SHA-1"</font><font color="#990000">,</font> certificate<font color="#990000">),</font>
+      sha256<font color="#990000">:</font> <font color="#008080">await</font> <b><font color="#000000">hash</font></b><font color="#990000">(</font><font color="#FF0000">"SHA-256"</font><font color="#990000">,</font> certificate<font color="#990000">),</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    issuer<font color="#990000">:</font> <b><font color="#000000">parseSubsidiary</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>issuer<font color="#990000">.</font>typesAndValues<font color="#990000">),</font>
+    notBefore<font color="#990000">:</font> `$<font color="#FF0000">{</font>x509<font color="#990000">.</font>notBefore<font color="#990000">.</font>value<font color="#990000">.</font><b><font color="#000000">toLocaleString</font></b><font color="#990000">()</font><font color="#FF0000">}</font> <font color="#990000">(</font>$<font color="#FF0000">{</font>timeZone<font color="#FF0000">}</font><font color="#990000">)</font>`<font color="#990000">,</font>
+    notBeforeUTC<font color="#990000">:</font> x509<font color="#990000">.</font>notBefore<font color="#990000">.</font>value<font color="#990000">.</font><b><font color="#000000">toUTCString</font></b><font color="#990000">(),</font>
+    notAfter<font color="#990000">:</font> `$<font color="#FF0000">{</font>x509<font color="#990000">.</font>notAfter<font color="#990000">.</font>value<font color="#990000">.</font><b><font color="#000000">toLocaleString</font></b><font color="#990000">()</font><font color="#FF0000">}</font> <font color="#990000">(</font>$<font color="#FF0000">{</font>timeZone<font color="#FF0000">}</font><font color="#990000">)</font>`<font color="#990000">,</font>
+    notAfterUTC<font color="#990000">:</font> x509<font color="#990000">.</font>notAfter<font color="#990000">.</font>value<font color="#990000">.</font><b><font color="#000000">toUTCString</font></b><font color="#990000">(),</font>
+    subject<font color="#990000">:</font> <b><font color="#000000">parseSubsidiary</font></b><font color="#990000">(</font>x509<font color="#990000">.</font>subject<font color="#990000">.</font>typesAndValues<font color="#990000">),</font>
+    serialNumber<font color="#990000">:</font> <b><font color="#000000">hashify</font></b><font color="#990000">(</font><b><font color="#000000">getObjPath</font></b><font color="#990000">(</font>x509<font color="#990000">,</font> <font color="#FF0000">"serialNumber.valueBlock.valueHex"</font><font color="#990000">)),</font>
+    signature<font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> strings<font color="#990000">.</font>signature<font color="#990000">[</font><b><font color="#000000">getObjPath</font></b><font color="#990000">(</font>x509<font color="#990000">,</font> <font color="#FF0000">"signature.algorithmId"</font><font color="#990000">)],</font>
+      type<font color="#990000">:</font> <b><font color="#000000">getObjPath</font></b><font color="#990000">(</font>x509<font color="#990000">,</font> <font color="#FF0000">"signature.algorithmId"</font><font color="#990000">),</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    subjectPublicKeyInfo<font color="#990000">:</font> spki<font color="#990000">,</font>
+    unsupportedExtensions<font color="#990000">,</font>
+    version<font color="#990000">:</font> <font color="#990000">(</font>x509<font color="#990000">.</font>version <font color="#990000">+</font> <font color="#993399">1</font><font color="#990000">).</font><b><font color="#000000">toString</font></b><font color="#990000">(),</font>
+  <font color="#FF0000">}</font><font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> ctLogNames <font color="#990000">=</font> <font color="#FF0000">{</font>
+  <font color="#FF0000">"9606c02c690033aa1d145f59c6e2648d0549f0df96aab8db915a70d8ecf390a5"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Akamai CT"</font><font color="#990000">,</font>
+  <font color="#FF0000">"39376f545f7b4607f59742d768cd5d2437bf3473b6534a4834bcf72e681c83c9"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Alpha CT"</font><font color="#990000">,</font>
+  a577ac9ced7548dd8f025b67a241089df86e0f476ec203c2ecbedb185f282638<font color="#990000">:</font> <font color="#FF0000">"CNNIC CT"</font><font color="#990000">,</font>
+  cdb5179b7fc1c046feea31136a3f8f002e6182faf8896fecc8b2f5b5ab604900<font color="#990000">:</font> <font color="#FF0000">"Certly.IO"</font><font color="#990000">,</font>
+  <font color="#FF0000">"1fbc36e002ede97f40199e86b3573b8a4217d80187746ad0da03a06054d20df4"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Cloudflare “Nimbus2017”"</font><font color="#990000">,</font>
+  db74afeecb29ecb1feca3e716d2ce5b9aabb36f7847183c75d9d4f37b61fbf64<font color="#990000">:</font>
+    <font color="#FF0000">"Cloudflare “Nimbus2018”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"747eda8331ad331091219cce254f4270c2bffd5e422008c6373579e6107bcc56"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Cloudflare “Nimbus2019”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"5ea773f9df56c0e7b536487dd049e0327a919a0c84a112128418759681714558"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Cloudflare “Nimbus2020”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"4494652eb0eeceafc44007d8a8fe28c0dae682bed8cb31b53fd33396b5b681a8"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Cloudflare “Nimbus2021”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"41c8cab1df22464a10c6a13a0942875e4e318b1b03ebeb4bc768f090629606f6"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Cloudflare “Nimbus2022”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"7a328c54d8b72db620ea38e0521ee98416703213854d3bd22bc13a57a352eb52"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Cloudflare “Nimbus2023”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"6ff141b5647e4222f7ef052cefae7c21fd608e27d2af5a6e9f4b8a37d6633ee5"</font><font color="#990000">:</font>
+    <font color="#FF0000">"DigiCert Nessie2018"</font><font color="#990000">,</font>
+  fe446108b1d01ab78a62ccfeab6ab2b2babff3abdad80a4d8b30df2d0008830c<font color="#990000">:</font>
+    <font color="#FF0000">"DigiCert Nessie2019"</font><font color="#990000">,</font>
+  c652a0ec48ceb3fcab170992c43a87413309e80065a26252401ba3362a17c565<font color="#990000">:</font>
+    <font color="#FF0000">"DigiCert Nessie2020"</font><font color="#990000">,</font>
+  eec095ee8d72640f92e3c3b91bc712a3696a097b4b6a1a1438e647b2cbedc5f9<font color="#990000">:</font>
+    <font color="#FF0000">"DigiCert Nessie2021"</font><font color="#990000">,</font>
+  <font color="#FF0000">"51a3b0f5fd01799c566db837788f0ca47acc1b27cbf79e88429a0dfed48b05e5"</font><font color="#990000">:</font>
+    <font color="#FF0000">"DigiCert Nessie2022"</font><font color="#990000">,</font>
+  b3737707e18450f86386d605a9dc11094a792db1670c0b87dcf0030e7936a59a<font color="#990000">:</font>
+    <font color="#FF0000">"DigiCert Nessie2023"</font><font color="#990000">,</font>
+  <font color="#FF0000">"5614069a2fd7c2ecd3f5e1bd44b23ec74676b9bc99115cc0ef949855d689d0dd"</font><font color="#990000">:</font>
+    <font color="#FF0000">"DigiCert Server"</font><font color="#990000">,</font>
+  <font color="#FF0000">"8775bfe7597cf88c43995fbdf36eff568d475636ff4ab560c1b4eaff5ea0830f"</font><font color="#990000">:</font>
+    <font color="#FF0000">"DigiCert Server 2"</font><font color="#990000">,</font>
+  c1164ae0a772d2d4392dc80ac10770d4f0c49bde991a4840c1fa075164f63360<font color="#990000">:</font>
+    <font color="#FF0000">"DigiCert Yeti2018"</font><font color="#990000">,</font>
+  e2694bae26e8e94009e8861bb63b83d43ee7fe7488fba48f2893019dddf1dbfe<font color="#990000">:</font>
+    <font color="#FF0000">"DigiCert Yeti2019"</font><font color="#990000">,</font>
+  f095a459f200d18240102d2f93888ead4bfe1d47e399e1d034a6b0a8aa8eb273<font color="#990000">:</font>
+    <font color="#FF0000">"DigiCert Yeti2020"</font><font color="#990000">,</font>
+  <font color="#FF0000">"5cdc4392fee6ab4544b15e9ad456e61037fbd5fa47dca17394b25ee6f6c70eca"</font><font color="#990000">:</font>
+    <font color="#FF0000">"DigiCert Yeti2021"</font><font color="#990000">,</font>
+  <font color="#FF0000">"2245450759552456963fa12ff1f76d86e0232663adc04b7f5dc6835c6ee20f02"</font><font color="#990000">:</font>
+    <font color="#FF0000">"DigiCert Yeti2022"</font><font color="#990000">,</font>
+  <font color="#FF0000">"35cf191bbfb16c57bf0fad4c6d42cbbbb627202651ea3fe12aefa803c33bd64c"</font><font color="#990000">:</font>
+    <font color="#FF0000">"DigiCert Yeti2023"</font><font color="#990000">,</font>
+  <font color="#FF0000">"717ea7420975be84a2723553f1777c26dd51af4e102144094d9019b462fb6668"</font><font color="#990000">:</font> <font color="#FF0000">"GDCA 1"</font><font color="#990000">,</font>
+  <font color="#FF0000">"14308d90ccd030135005c01ca526d81e84e87624e39b6248e08f724aea3bb42a"</font><font color="#990000">:</font> <font color="#FF0000">"GDCA 2"</font><font color="#990000">,</font>
+  c9cf890a21109c666cc17a3ed065c930d0e0135a9feba85af14210b8072421aa<font color="#990000">:</font>
+    <font color="#FF0000">"GDCA CT #1"</font><font color="#990000">,</font>
+  <font color="#FF0000">"924a30f909336ff435d6993a10ac75a2c641728e7fc2d659ae6188ffad40ce01"</font><font color="#990000">:</font>
+    <font color="#FF0000">"GDCA CT #2"</font><font color="#990000">,</font>
+  fad4c97cc49ee2f8ac85c5ea5cea09d0220dbbf4e49c6b50662ff868f86b8c28<font color="#990000">:</font>
+    <font color="#FF0000">"Google “Argon2017”"</font><font color="#990000">,</font>
+  a4501269055a15545e6211ab37bc103f62ae5576a45e4b1714453e1b22106a25<font color="#990000">:</font>
+    <font color="#FF0000">"Google “Argon2018”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"63f2dbcde83bcc2ccf0b728427576b33a48d61778fbd75a638b1c768544bd88d"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Google “Argon2019”"</font><font color="#990000">,</font>
+  b21e05cc8ba2cd8a204e8766f92bb98a2520676bdafa70e7b249532def8b905e<font color="#990000">:</font>
+    <font color="#FF0000">"Google “Argon2020”"</font><font color="#990000">,</font>
+  f65c942fd1773022145418083094568ee34d131933bfdf0c2f200bcc4ef164e3<font color="#990000">:</font>
+    <font color="#FF0000">"Google “Argon2021”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"2979bef09e393921f056739f63a577e5be577d9c600af8f94d5d265c255dc784"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Google “Argon2022”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"68f698f81f6482be3a8ceeb9281d4cfc71515d6793d444d10a67acbb4f4ffbc4"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Google “Aviator”"</font><font color="#990000">,</font>
+  c3bf03a7e1ca8841c607bae3ff4270fca5ec45b186ebbe4e2cf3fc778630f5f6<font color="#990000">:</font>
+    <font color="#FF0000">"Google “Crucible”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"1d024b8eb1498b344dfd87ea3efc0996f7506f235d1d497061a4773c439c25fb"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Google “Daedalus”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"293c519654c83965baaa50fc5807d4b76fbf587a2972dca4c30cf4e54547f478"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Google “Icarus”"</font><font color="#990000">,</font>
+  a4b90990b418581487bb13a2cc67700a3c359804f91bdfb8e377cd0ec80ddc10<font color="#990000">:</font>
+    <font color="#FF0000">"Google “Pilot”"</font><font color="#990000">,</font>
+  ee4bbdb775ce60bae142691fabe19e66a30f7e5fb072d88300c47b897aa8fdcb<font color="#990000">:</font>
+    <font color="#FF0000">"Google “Rocketeer”"</font><font color="#990000">,</font>
+  bbd9dfbc1f8a71b593942397aa927b473857950aab52e81a909664368e1ed185<font color="#990000">:</font>
+    <font color="#FF0000">"Google “Skydiver”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"52eb4b225ec896974850675f23e43bc1d021e3214ce52ecd5fa87c203cdfca03"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Google “Solera2018”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"0b760e9a8b9a682f88985b15e947501a56446bba8830785c3842994386450c00"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Google “Solera2019”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"1fc72ce5a1b799f400c359bff96ca3913548e8644220610952e9ba1774f7bac7"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Google “Solera2020”"</font><font color="#990000">,</font>
+  a3c99845e80ab7ce00157b3742df0207dd272b2b602ecf98ee2c12db9c5ae7e7<font color="#990000">:</font>
+    <font color="#FF0000">"Google “Solera2021”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"697aafca1a6b536fae21205046debad7e0eaea13d2432e6e9d8fb379f2b9aaf3"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Google “Solera2022”"</font><font color="#990000">,</font>
+  a899d8780c9290aaf462f31880ccfbd52451e970d0fbf591ef75b0d99b645681<font color="#990000">:</font>
+    <font color="#FF0000">"Google “Submariner”"</font><font color="#990000">,</font>
+  b0cc83e5a5f97d6baf7c09cc284904872ac7e88b132c6350b7c6fd26e16c6c77<font color="#990000">:</font>
+    <font color="#FF0000">"Google “Testtube”"</font><font color="#990000">,</font>
+  b10cd559a6d67846811f7df9a51532739ac48d703bea0323da5d38755bc0ad4e<font color="#990000">:</font>
+    <font color="#FF0000">"Google “Xenon2018”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"084114980071532c16190460bcfc47fdc2653afa292c72b37ff863ae29ccc9f0"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Google “Xenon2019”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"07b75c1be57d68fff1b0c61d2315c7bae6577c5794b76aeebc613a1a69d3a21c"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Google “Xenon2020”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"7d3ef2f88fff88556824c2c0ca9e5289792bc50e78097f2e6a9768997e22f0d7"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Google “Xenon2021”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"46a555eb75fa912030b5a28969f4f37d112c4174befd49b885abf2fc70fe6d47"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Google “Xenon2022”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"7461b4a09cfb3d41d75159575b2e7649a445a8d27709b0cc564a6482b7eb41a3"</font><font color="#990000">:</font> <font color="#FF0000">"Izenpe"</font><font color="#990000">,</font>
+  <font color="#FF0000">"8941449c70742e06b9fc9ce7b116ba0024aa36d59af44f0204404f00f7ea8566"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Izenpe “Argi”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"296afa2d568bca0d2ea844956ae9721fc35fa355ecda99693aafd458a71aefdd"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Let“s Encrypt ”Clicky”"</font><font color="#990000">,</font>
+  <font color="#FF0000">"537b69a3564335a9c04904e39593b2c298eb8d7a6e83023635c627248cd6b440"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Nordu “flimsy”"</font><font color="#990000">,</font>
+  aae70b7f3cb8d566c86c2f16979c9f445f69ab0eb4535589b2f77a030104f3cd<font color="#990000">:</font>
+    <font color="#FF0000">"Nordu “plausible”"</font><font color="#990000">,</font>
+  e0127629e90496564e3d0147984498aa48f8adb16600eb7902a1ef9909906273<font color="#990000">:</font>
+    <font color="#FF0000">"PuChuangSiDa CT"</font><font color="#990000">,</font>
+  cf55e28923497c340d5206d05353aeb25834b52f1f8dc9526809f212efdd7ca6<font color="#990000">:</font>
+    <font color="#FF0000">"SHECA CT 1"</font><font color="#990000">,</font>
+  <font color="#FF0000">"32dc59c2d4c41968d56e14bc61ac8f0e45db39faf3c155aa4252f5001fa0c623"</font><font color="#990000">:</font>
+    <font color="#FF0000">"SHECA CT 2"</font><font color="#990000">,</font>
+  db76fdadac65e7d09508886e2159bd8b90352f5fead3e3dc5e22eb350acc7b98<font color="#990000">:</font>
+    <font color="#FF0000">"Sectigo (Comodo) “Dodo” CT"</font><font color="#990000">,</font>
+  <font color="#FF0000">"6f5376ac31f03119d89900a45115ff77151c11d902c10029068db2089a37d913"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Sectigo (Comodo) “Mammoth” CT"</font><font color="#990000">,</font>
+  <font color="#FF0000">"5581d4c2169036014aea0b9b573c53f0c0e43878702508172fa3aa1d0713d30c"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Sectigo (Comodo) “Sabre” CT"</font><font color="#990000">,</font>
+  <font color="#FF0000">"34bb6ad6c3df9c03eea8a499ff7891486c9d5e5cac92d01f7bfd1bce19db48ef"</font><font color="#990000">:</font>
+    <font color="#FF0000">"StartCom"</font><font color="#990000">,</font>
+  ddeb1d2b7a0d4fa6208b81ad8168707e2e8e9d01d55c888d3d11c4cdb6ecbecc<font color="#990000">:</font> <font color="#FF0000">"Symantec"</font><font color="#990000">,</font>
+  a7ce4a4e6207e0addee5fdaa4b1f86768767b5d002a55d47310e7e670a95eab2<font color="#990000">:</font>
+    <font color="#FF0000">"Symantec Deneb"</font><font color="#990000">,</font>
+  <font color="#FF0000">"15970488d7b997a05beb52512adee8d2e8b4a3165264121a9fabfbd5f85ad93f"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Symantec “Sirius”"</font><font color="#990000">,</font>
+  bc78e1dfc5f63c684649334da10fa15f0979692009c081b4f3f6917f3ed9b8a5<font color="#990000">:</font>
+    <font color="#FF0000">"Symantec “Vega”"</font><font color="#990000">,</font>
+  b0b784bc81c0ddc47544e883f05985bb9077d134d8ab88b2b2e533980b8e508b<font color="#990000">:</font>
+    <font color="#FF0000">"Up In The Air “Behind the Sofa”"</font><font color="#990000">,</font>
+  ac3b9aed7fa9674757159e6d7d575672f9d98100941e9bdeffeca1313b75782d<font color="#990000">:</font> <font color="#FF0000">"Venafi"</font><font color="#990000">,</font>
+  <font color="#FF0000">"03019df3fd85a69a8ebd1facc6da9ba73e469774fe77f579fc5a08b8328c1d6b"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Venafi Gen2 CT"</font><font color="#990000">,</font>
+  <font color="#FF0000">"41b2dc2e89e63ce4af1ba7bb29bf68c6dee6f9f1cc047e30dffae3b3ba259263"</font><font color="#990000">:</font> <font color="#FF0000">"WoSign"</font><font color="#990000">,</font>
+  <font color="#FF0000">"63d0006026dde10bb0601f452446965ee2b6ea2cd4fbc95ac866a550af9075b7"</font><font color="#990000">:</font>
+    <font color="#FF0000">"WoSign 2"</font><font color="#990000">,</font>
+  <font color="#FF0000">"9e4ff73dc3ce220b69217c899e468076abf8d78636d5ccfc85a31a75628ba88b"</font><font color="#990000">:</font>
+    <font color="#FF0000">"WoSign CT #1"</font><font color="#990000">,</font>
+  <font color="#FF0000">"659b3350f43b12cc5ea5ab4ec765d3fde6c88243777778e72003f9eb2b8c3129"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Let's Encrypt Oak 2019"</font><font color="#990000">,</font>
+  e712f2b0377e1a62fb8ec90c6184f1ea7b37cb561d11265bf3e0f34bf241546e<font color="#990000">:</font>
+    <font color="#FF0000">"Let's Encrypt Oak 2020"</font><font color="#990000">,</font>
+  <font color="#FF0000">"9420bc1e8ed58d6c88731f828b222c0dd1da4d5e6c4f943d61db4e2f584da2c2"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Let's Encrypt Oak 2021"</font><font color="#990000">,</font>
+  dfa55eab68824f1f6cadeeb85f4e3e5aeacda212a46a5e8e3b12c020445c2a73<font color="#990000">:</font>
+    <font color="#FF0000">"Let's Encrypt Oak 2022"</font><font color="#990000">,</font>
+  b73efb24df9c4dba75f239c5ba58f46c5dfc42cf7a9f35c49e1d098125edb499<font color="#990000">:</font>
+    <font color="#FF0000">"Let's Encrypt Oak 2023"</font><font color="#990000">,</font>
+  <font color="#FF0000">"849f5f7f58d2bf7b54ecbd74611cea45c49c98f1d6481bc6f69e8c174f24f3cf"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Let's Encrypt Testflume 2019"</font><font color="#990000">,</font>
+  c63f2218c37d56a6aa06b596da8e53d4d7156d1e9bac8e44d2202de64d69d9dc<font color="#990000">:</font>
+    <font color="#FF0000">"Let's Encrypt Testflume 2020"</font><font color="#990000">,</font>
+  <font color="#FF0000">"03edf1da9776b6f38c341e39ed9d707a7570369cf9844f327fe9e14138361b60"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Let's Encrypt Testflume 2021"</font><font color="#990000">,</font>
+  <font color="#FF0000">"2327efda352510dbc019ef491ae3ff1cc5a479bce37878360ee318cffb64f8c8"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Let's Encrypt Testflume 2022"</font><font color="#990000">,</font>
+  <font color="#FF0000">"5534b7ab5a6ac3a7cbeba65487b2a2d71b48f650fa17c5197c97a0cb2076f3c6"</font><font color="#990000">:</font>
+    <font color="#FF0000">"Let's Encrypt Testflume 2023"</font><font color="#990000">,</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> strings <font color="#990000">=</font> <font color="#FF0000">{</font>
+  ux<font color="#990000">:</font> <font color="#FF0000">{</font>
+    upload<font color="#990000">:</font> <font color="#FF0000">"Upload Certificate"</font><font color="#990000">,</font>
+  <font color="#FF0000">}</font><font color="#990000">,</font>
+
+  names<font color="#990000">:</font> <font color="#FF0000">{</font>
+    <i><font color="#9A1900">// Directory Pilot Attributes</font></i>
+    <font color="#FF0000">"0.9.2342.19200300.100.1.1"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"uid"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"User ID"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"0.9.2342.19200300.100.1.25"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"dc"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Domain Component"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+
+    <i><font color="#9A1900">// PKCS-9</font></i>
+    <font color="#FF0000">"1.2.840.113549.1.9.1"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"e"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Email Address"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+
+    <i><font color="#9A1900">// Incorporated Locations</font></i>
+    <font color="#FF0000">"1.3.6.1.4.1.311.60.2.1.1"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Inc. Locality"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.60.2.1.2"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Inc. State / Province"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.60.2.1.3"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Inc. Country"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+
+    <i><font color="#9A1900">// microsoft cryptographic extensions</font></i>
+    <font color="#FF0000">"1.3.6.1.4.1.311.21.7"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">{</font>
+        <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"Certificate Template"</font><font color="#990000">,</font>
+        <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Microsoft Certificate Template"</font><font color="#990000">,</font>
+      <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.21.10"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">{</font>
+        <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"Certificate Policies"</font><font color="#990000">,</font>
+        <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Microsoft Certificate Policies"</font><font color="#990000">,</font>
+      <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+
+    <i><font color="#9A1900">// certificate extensions</font></i>
+    <font color="#FF0000">"1.3.6.1.4.1.11129.2.4.2"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">{</font>
+        <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"Embedded SCTs"</font><font color="#990000">,</font>
+        <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Embedded Signed Certificate Timestamps"</font><font color="#990000">,</font>
+      <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.5.5.7.1.1"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">{</font>
+        <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+        <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Authority Information Access"</font><font color="#990000">,</font>
+      <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.5.5.7.1.24"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">{</font>
+        <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"OCSP Stapling"</font><font color="#990000">,</font>
+        <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Online Certificate Status Protocol Stapling"</font><font color="#990000">,</font>
+      <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+
+    <i><font color="#9A1900">// X.500 attribute types</font></i>
+    <font color="#FF0000">"2.5.4.1"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Aliased Entry"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.2"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Knowledge Information"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.3"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"cn"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Common Name"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.4"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"sn"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Surname"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.5"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"serialNumber"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Serial Number"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.6"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"c"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Country"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.7"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"l"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Locality"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.8"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"s"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"State / Province"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.9"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"street"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Stress Address"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.10"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"o"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Organization"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.11"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"ou"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Organizational Unit"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.12"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"t"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Title"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.13"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"description"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Description"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.14"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Search Guide"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.15"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Business Category"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.16"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Postal Address"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.17"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"postalCode"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Postal Code"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.18"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"POBox"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"PO Box"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.19"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Physical Delivery Office Name"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.20"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"phone"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Phone Number"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.21"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Telex Number"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.22"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Teletex Terminal Identifier"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.23"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Fax Number"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.24"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"X.121 Address"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.25"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"International ISDN Number"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.26"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Registered Address"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.27"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Destination Indicator"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.28"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Preferred Delivery Method"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.29"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Presentation Address"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.30"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Supported Application Context"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.31"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Member"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.32"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Owner"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.33"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Role Occupant"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.34"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"See Also"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.35"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"User Password"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.36"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"User Certificate"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.37"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"CA Certificate"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.38"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Authority Revocation List"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.39"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Certificate Revocation List"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.40"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Cross-certificate Pair"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.41"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Name"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.42"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"g"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Given Name"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.43"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"i"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Initials"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.44"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Generation Qualifier"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.45"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Unique Identifier"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.46"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"DN Qualifier"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.47"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Enhanced Search Guide"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.48"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Protocol Information"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.49"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"dn"</font><font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Distinguished Name"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.50"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Unique Member"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.51"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"House Identifier"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.52"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Supported Algorithms"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.53"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Delta Revocation List"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.58"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Attribute Certificate Attribute"</font><font color="#990000">,</font> <i><font color="#9A1900">// huh</font></i>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.4.65"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+      <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Pseudonym"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+
+    <i><font color="#9A1900">// extensions</font></i>
+    <font color="#FF0000">"2.5.29.14"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">{</font>
+        <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"Subject Key ID"</font><font color="#990000">,</font>
+        <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Subject Key Identifier"</font><font color="#990000">,</font>
+      <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.29.15"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">{</font>
+        <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+        <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Key Usages"</font><font color="#990000">,</font>
+      <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.29.17"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">{</font>
+        <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"Subject Alt Names"</font><font color="#990000">,</font>
+        <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Subject Alternative Names"</font><font color="#990000">,</font>
+      <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.29.19"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">{</font>
+        <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+        <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Basic Constraints"</font><font color="#990000">,</font>
+      <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.29.31"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">{</font>
+        <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"CRL Endpoints"</font><font color="#990000">,</font>
+        <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Certificate Revocation List Endpoints"</font><font color="#990000">,</font>
+      <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.29.32"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">{</font>
+        <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+        <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Certificate Policies"</font><font color="#990000">,</font>
+      <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.29.35"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">{</font>
+        <font color="#009900">short</font><font color="#990000">:</font> <font color="#FF0000">"Authority Key ID"</font><font color="#990000">,</font>
+        <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Authority Key Identifier"</font><font color="#990000">,</font>
+      <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.5.29.37"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">{</font>
+        <font color="#009900">short</font><font color="#990000">:</font> undefined<font color="#990000">,</font>
+        <font color="#009900">long</font><font color="#990000">:</font> <font color="#FF0000">"Extended Key Usages"</font><font color="#990000">,</font>
+      <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+  <font color="#FF0000">}</font><font color="#990000">,</font>
+
+  keyUsages<font color="#990000">:</font> <font color="#990000">[</font>
+    <font color="#FF0000">"CRL Signing"</font><font color="#990000">,</font>
+    <font color="#FF0000">"Certificate Signing"</font><font color="#990000">,</font>
+    <font color="#FF0000">"Key Agreement"</font><font color="#990000">,</font>
+    <font color="#FF0000">"Data Encipherment"</font><font color="#990000">,</font>
+    <font color="#FF0000">"Key Encipherment"</font><font color="#990000">,</font>
+    <font color="#FF0000">"Non-Repudiation"</font><font color="#990000">,</font>
+    <font color="#FF0000">"Digital Signature"</font><font color="#990000">,</font>
+  <font color="#990000">],</font>
+
+  san<font color="#990000">:</font> <font color="#990000">[</font>
+    <font color="#FF0000">"Other Name"</font><font color="#990000">,</font>
+    <font color="#FF0000">"RFC 822 Name"</font><font color="#990000">,</font>
+    <font color="#FF0000">"DNS Name"</font><font color="#990000">,</font>
+    <font color="#FF0000">"X.400 Address"</font><font color="#990000">,</font>
+    <font color="#FF0000">"Directory Name"</font><font color="#990000">,</font>
+    <font color="#FF0000">"EDI Party Name"</font><font color="#990000">,</font>
+    <font color="#FF0000">"URI"</font><font color="#990000">,</font>
+    <font color="#FF0000">"IP Address"</font><font color="#990000">,</font>
+    <font color="#FF0000">"Registered ID"</font><font color="#990000">,</font>
+  <font color="#990000">],</font>
+
+  eKU<font color="#990000">:</font> <font color="#FF0000">{</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.10.3.1"</font><font color="#990000">:</font> <font color="#FF0000">"Certificate Trust List (CTL) Signing"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.10.3.2"</font><font color="#990000">:</font> <font color="#FF0000">"Timestamp Signing"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.10.3.4"</font><font color="#990000">:</font> <font color="#FF0000">"EFS Encryption"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.10.3.4.1"</font><font color="#990000">:</font> <font color="#FF0000">"EFS Recovery"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.10.3.5"</font><font color="#990000">:</font>
+      <font color="#FF0000">"Windows Hardware Quality Labs (WHQL) Cryptography"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.10.3.7"</font><font color="#990000">:</font> <font color="#FF0000">"Windows NT 5 Cryptography"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.10.3.8"</font><font color="#990000">:</font> <font color="#FF0000">"Windows NT Embedded Cryptography"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.10.3.10"</font><font color="#990000">:</font> <font color="#FF0000">"Qualified Subordination"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.10.3.11"</font><font color="#990000">:</font> <font color="#FF0000">"Escrowed Key Recovery"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.10.3.12"</font><font color="#990000">:</font> <font color="#FF0000">"Document Signing"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.10.5.1"</font><font color="#990000">:</font> <font color="#FF0000">"Digital Rights Management"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.10.6.1"</font><font color="#990000">:</font> <font color="#FF0000">"Key Pack Licenses"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.10.6.2"</font><font color="#990000">:</font> <font color="#FF0000">"License Server"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.20.2.1"</font><font color="#990000">:</font> <font color="#FF0000">"Enrollment Agent"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.20.2.2"</font><font color="#990000">:</font> <font color="#FF0000">"Smartcard Login"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.21.5"</font><font color="#990000">:</font> <font color="#FF0000">"Certificate Authority Private Key Archival"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.21.6"</font><font color="#990000">:</font> <font color="#FF0000">"Key Recovery Agent"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.4.1.311.21.19"</font><font color="#990000">:</font> <font color="#FF0000">"Directory Service Email Replication"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.5.5.7.3.1"</font><font color="#990000">:</font> <font color="#FF0000">"Server Authentication"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.5.5.7.3.2"</font><font color="#990000">:</font> <font color="#FF0000">"Client Authentication"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.5.5.7.3.3"</font><font color="#990000">:</font> <font color="#FF0000">"Code Signing"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.5.5.7.3.4"</font><font color="#990000">:</font> <font color="#FF0000">"E-mail Protection"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.5.5.7.3.5"</font><font color="#990000">:</font> <font color="#FF0000">"IPsec End System"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.5.5.7.3.6"</font><font color="#990000">:</font> <font color="#FF0000">"IPsec Tunnel"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.5.5.7.3.7"</font><font color="#990000">:</font> <font color="#FF0000">"IPSec User"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.5.5.7.3.8"</font><font color="#990000">:</font> <font color="#FF0000">"Timestamping"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.5.5.7.3.9"</font><font color="#990000">:</font> <font color="#FF0000">"OCSP Signing"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.5.5.8.2.2"</font><font color="#990000">:</font> <font color="#FF0000">"Internet Key Exchange (IKE)"</font><font color="#990000">,</font>
+  <font color="#FF0000">}</font><font color="#990000">,</font>
+
+  signature<font color="#990000">:</font> <font color="#FF0000">{</font>
+    <font color="#FF0000">"1.2.840.113549.1.1.4"</font><font color="#990000">:</font> <font color="#FF0000">"MD5 with RSA Encryption"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.2.840.113549.1.1.5"</font><font color="#990000">:</font> <font color="#FF0000">"SHA-1 with RSA Encryption"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.2.840.113549.1.1.11"</font><font color="#990000">:</font> <font color="#FF0000">"SHA-256 with RSA Encryption"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.2.840.113549.1.1.12"</font><font color="#990000">:</font> <font color="#FF0000">"SHA-384 with RSA Encryption"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.2.840.113549.1.1.13"</font><font color="#990000">:</font> <font color="#FF0000">"SHA-512 with RSA Encryption"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.2.840.10040.4.3"</font><font color="#990000">:</font> <font color="#FF0000">"DSA with SHA-1"</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.16.840.1.101.3.4.3.2"</font><font color="#990000">:</font> <font color="#FF0000">"DSA with SHA-256"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.2.840.10045.4.1"</font><font color="#990000">:</font> <font color="#FF0000">"ECDSA with SHA-1"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.2.840.10045.4.3.2"</font><font color="#990000">:</font> <font color="#FF0000">"ECDSA with SHA-256"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.2.840.10045.4.3.3"</font><font color="#990000">:</font> <font color="#FF0000">"ECDSA with SHA-384"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.2.840.10045.4.3.4"</font><font color="#990000">:</font> <font color="#FF0000">"ECDSA with SHA-512"</font><font color="#990000">,</font>
+  <font color="#FF0000">}</font><font color="#990000">,</font>
+
+  aia<font color="#990000">:</font> <font color="#FF0000">{</font>
+    <font color="#FF0000">"1.3.6.1.5.5.7.48.1"</font><font color="#990000">:</font> <font color="#FF0000">"Online Certificate Status Protocol (OCSP)"</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.5.5.7.48.2"</font><font color="#990000">:</font> <font color="#FF0000">"CA Issuers"</font><font color="#990000">,</font>
+  <font color="#FF0000">}</font><font color="#990000">,</font>
+
+  <i><font color="#9A1900">// this includes qualifiers as well</font></i>
+  cps<font color="#990000">:</font> <font color="#FF0000">{</font>
+    <font color="#FF0000">"1.3.6.1.4.1"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">"Statement Identifier"</font><font color="#990000">,</font>
+      value<font color="#990000">:</font> undefined<font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.5.5.7.2.1"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">"Practices Statement"</font><font color="#990000">,</font>
+      value<font color="#990000">:</font> undefined<font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"1.3.6.1.5.5.7.2.2"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">"User Notice"</font><font color="#990000">,</font>
+      value<font color="#990000">:</font> undefined<font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.16.840"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">"ANSI Organizational Identifier"</font><font color="#990000">,</font>
+      value<font color="#990000">:</font> undefined<font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.23.140.1.1"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">"Certificate Type"</font><font color="#990000">,</font>
+      value<font color="#990000">:</font> <font color="#FF0000">"Extended Validation"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.23.140.1.2.1"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">"Certificate Type"</font><font color="#990000">,</font>
+      value<font color="#990000">:</font> <font color="#FF0000">"Domain Validation"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.23.140.1.2.2"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">"Certificate Type"</font><font color="#990000">,</font>
+      value<font color="#990000">:</font> <font color="#FF0000">"Organization Validation"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.23.140.1.2.3"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">"Certificate Type"</font><font color="#990000">,</font>
+      value<font color="#990000">:</font> <font color="#FF0000">"Individual Validation"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.23.140.1.3"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">"Certificate Type"</font><font color="#990000">,</font>
+      value<font color="#990000">:</font> <font color="#FF0000">"Extended Validation (Code Signing)"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.23.140.1.31"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">"Certificate Type"</font><font color="#990000">,</font>
+      value<font color="#990000">:</font> <font color="#FF0000">".onion Extended Validation"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+    <font color="#FF0000">"2.23.140.2.1"</font><font color="#990000">:</font> <font color="#FF0000">{</font>
+      name<font color="#990000">:</font> <font color="#FF0000">"Certificate Type"</font><font color="#990000">,</font>
+      value<font color="#990000">:</font> <font color="#FF0000">"Test Certificate"</font><font color="#990000">,</font>
+    <font color="#FF0000">}</font><font color="#990000">,</font>
+  <font color="#FF0000">}</font><font color="#990000">,</font>
+
+  microsoftCertificateTypes<font color="#990000">:</font> <font color="#FF0000">{</font>
+    Administrator<font color="#990000">:</font> <font color="#FF0000">"Administrator"</font><font color="#990000">,</font>
+    CA<font color="#990000">:</font> <font color="#FF0000">"Root Certification Authority"</font><font color="#990000">,</font>
+    CAExchange<font color="#990000">:</font> <font color="#FF0000">"CA Exchange"</font><font color="#990000">,</font>
+    CEPEncryption<font color="#990000">:</font> <font color="#FF0000">"CEP Encryption"</font><font color="#990000">,</font>
+    CertificateRequestAgent<font color="#990000">:</font> <font color="#FF0000">"Certificate Request Agent"</font><font color="#990000">,</font>
+    ClientAuth<font color="#990000">:</font> <font color="#FF0000">"Authenticated Session"</font><font color="#990000">,</font>
+    CodeSigning<font color="#990000">:</font> <font color="#FF0000">"Code Signing"</font><font color="#990000">,</font>
+    CrossCA<font color="#990000">:</font> <font color="#FF0000">"Cross Certification Authority"</font><font color="#990000">,</font>
+    CTLSigning<font color="#990000">:</font> <font color="#FF0000">"Trust List Signing"</font><font color="#990000">,</font>
+    DirectoryEmailReplication<font color="#990000">:</font> <font color="#FF0000">"Directory Email Replication"</font><font color="#990000">,</font>
+    DomainController<font color="#990000">:</font> <font color="#FF0000">"Domain Controller"</font><font color="#990000">,</font>
+    DomainControllerAuthentication<font color="#990000">:</font> <font color="#FF0000">"Domain Controller Authentication"</font><font color="#990000">,</font>
+    EFS<font color="#990000">:</font> <font color="#FF0000">"Basic EFS"</font><font color="#990000">,</font>
+    EFSRecovery<font color="#990000">:</font> <font color="#FF0000">"EFS Recovery Agent"</font><font color="#990000">,</font>
+    EnrollmentAgent<font color="#990000">:</font> <font color="#FF0000">"Enrollment Agent"</font><font color="#990000">,</font>
+    EnrollmentAgentOffline<font color="#990000">:</font> <font color="#FF0000">"Exchange Enrollment Agent (Offline request)"</font><font color="#990000">,</font>
+    ExchangeUser<font color="#990000">:</font> <font color="#FF0000">"Exchange User"</font><font color="#990000">,</font>
+    ExchangeUserSignature<font color="#990000">:</font> <font color="#FF0000">"Exchange Signature Only"</font><font color="#990000">,</font>
+    IPSECIntermediateOffline<font color="#990000">:</font> <font color="#FF0000">"IPSec (Offline request)"</font><font color="#990000">,</font>
+    IPSECIntermediateOnline<font color="#990000">:</font> <font color="#FF0000">"IPSEC"</font><font color="#990000">,</font>
+    KerberosAuthentication<font color="#990000">:</font> <font color="#FF0000">"Kerberos Authentication"</font><font color="#990000">,</font>
+    KeyRecoveryAgent<font color="#990000">:</font> <font color="#FF0000">"Key Recovery Agent"</font><font color="#990000">,</font>
+    Machine<font color="#990000">:</font> <font color="#FF0000">"Computer"</font><font color="#990000">,</font>
+    MachineEnrollmentAgent<font color="#990000">:</font> <font color="#FF0000">"Enrollment Agent (Computer)"</font><font color="#990000">,</font>
+    OCSPResponseSigning<font color="#990000">:</font> <font color="#FF0000">"OCSP Response Signing"</font><font color="#990000">,</font>
+    OfflineRouter<font color="#990000">:</font> <font color="#FF0000">"Router (Offline request)"</font><font color="#990000">,</font>
+    RASAndIASServer<font color="#990000">:</font> <font color="#FF0000">"RAS and IAS Server"</font><font color="#990000">,</font>
+    SmartcardLogon<font color="#990000">:</font> <font color="#FF0000">"Smartcard Logon"</font><font color="#990000">,</font>
+    SmartcardUser<font color="#990000">:</font> <font color="#FF0000">"Smartcard User"</font><font color="#990000">,</font>
+    SubCA<font color="#990000">:</font> <font color="#FF0000">"Subordinate Certification Authority"</font><font color="#990000">,</font>
+    User<font color="#990000">:</font> <font color="#FF0000">"User"</font><font color="#990000">,</font>
+    UserSignature<font color="#990000">:</font> <font color="#FF0000">"User Signature Only"</font><font color="#990000">,</font>
+    WebServer<font color="#990000">:</font> <font color="#FF0000">"Web Server"</font><font color="#990000">,</font>
+    Workstation<font color="#990000">:</font> <font color="#FF0000">"Workstation Authentication"</font><font color="#990000">,</font>
+  <font color="#FF0000">}</font><font color="#990000">,</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<font color="#008080">function</font> <b><font color="#000000">stringToArrayBuffer</font></b><font color="#990000">(</font>string<font color="#990000">)</font> <font color="#FF0000">{</font>
+  <font color="#008080">let</font> result <font color="#990000">=</font> <b><font color="#0000FF">new</font></b> <b><font color="#000000">Uint8Array</font></b><font color="#990000">(</font>string<font color="#990000">.</font>length<font color="#990000">);</font>
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">let</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> string<font color="#990000">.</font>length<font color="#990000">;</font> i<font color="#990000">++)</font> <font color="#FF0000">{</font>
+    result<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">=</font> string<font color="#990000">.</font><b><font color="#000000">charCodeAt</font></b><font color="#990000">(</font>i<font color="#990000">);</font>
+  <font color="#FF0000">}</font>
+  <b><font color="#0000FF">return</font></b> result<font color="#990000">;</font>
+<font color="#FF0000">}</font>
+
+<i><font color="#9A1900">// this particular prototype override makes it easy to chain down complex objects</font></i>
+<b><font color="#0000FF">const</font></b> getObjPath <font color="#990000">=</font> <font color="#990000">(</font>obj<font color="#990000">,</font> path<font color="#990000">)</font> <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  path <font color="#990000">=</font> path<font color="#990000">.</font><b><font color="#000000">split</font></b><font color="#990000">(</font><font color="#FF0000">"."</font><font color="#990000">);</font>
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">let</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">,</font> len <font color="#990000">=</font> path<font color="#990000">.</font>length<font color="#990000">;</font> i <font color="#990000">&lt;</font> len<font color="#990000">;</font> i<font color="#990000">++)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>Array<font color="#990000">.</font><b><font color="#000000">isArray</font></b><font color="#990000">(</font>obj<font color="#990000">[</font>path<font color="#990000">[</font>i<font color="#990000">]]))</font> <font color="#FF0000">{</font>
+      obj <font color="#990000">=</font> obj<font color="#990000">[</font>path<font color="#990000">[</font>i<font color="#990000">]][</font>path<font color="#990000">[</font>i <font color="#990000">+</font> <font color="#993399">1</font><font color="#990000">]];</font>
+      i<font color="#990000">++;</font>
+    <font color="#FF0000">}</font> <b><font color="#0000FF">else</font></b> <font color="#FF0000">{</font>
+      obj <font color="#990000">=</font> obj<font color="#990000">[</font>path<font color="#990000">[</font>i<font color="#990000">]];</font>
+    <font color="#FF0000">}</font>
+  <font color="#FF0000">}</font>
+  <b><font color="#0000FF">return</font></b> obj<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> arrayBufferToHex <font color="#990000">=</font> arrayBuffer <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <b><font color="#0000FF">const</font></b> array <font color="#990000">=</font> Array<font color="#990000">.</font><b><font color="#000000">from</font></b><font color="#990000">(</font><b><font color="#0000FF">new</font></b> <b><font color="#000000">Uint8Array</font></b><font color="#990000">(</font>arrayBuffer<font color="#990000">));</font>
+
+  <b><font color="#0000FF">return</font></b> array
+    <font color="#990000">.</font><b><font color="#000000">map</font></b><font color="#990000">(</font>b <font color="#990000">=&gt;</font> <font color="#990000">(</font><font color="#FF0000">"00"</font> <font color="#990000">+</font> b<font color="#990000">.</font><b><font color="#000000">toString</font></b><font color="#990000">(</font><font color="#993399">16</font><font color="#990000">)).</font><b><font color="#000000">slice</font></b><font color="#990000">(-</font><font color="#993399">2</font><font color="#990000">))</font>
+    <font color="#990000">.</font><b><font color="#000000">join</font></b><font color="#990000">(</font><font color="#FF0000">":"</font><font color="#990000">)</font>
+    <font color="#990000">.</font><b><font color="#000000">toUpperCase</font></b><font color="#990000">();</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> hash <font color="#990000">=</font> <b><font color="#000000">async</font></b> <font color="#990000">(</font>algo<font color="#990000">,</font> buffer<font color="#990000">)</font> <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <b><font color="#0000FF">const</font></b> hashBuffer <font color="#990000">=</font> <font color="#008080">await</font> crypto<font color="#990000">.</font>subtle<font color="#990000">.</font><b><font color="#000000">digest</font></b><font color="#990000">(</font>algo<font color="#990000">,</font> buffer<font color="#990000">);</font>
+  <b><font color="#0000FF">return</font></b> <b><font color="#000000">arrayBufferToHex</font></b><font color="#990000">(</font>hashBuffer<font color="#990000">);</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">const</font></b> hashify <font color="#990000">=</font> rawHash <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font><font color="#008080">typeof</font> rawHash <font color="#990000">===</font> <font color="#FF0000">"string"</font><font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">return</font></b> rawHash<font color="#990000">.</font><b><font color="#000000">match</font></b><font color="#990000">(/.</font><font color="#FF0000">{</font><font color="#993399">2</font><font color="#FF0000">}</font><font color="#990000">/</font>g<font color="#990000">).</font><b><font color="#000000">join</font></b><font color="#990000">(</font><font color="#FF0000">":"</font><font color="#990000">).</font><b><font color="#000000">toUpperCase</font></b><font color="#990000">();</font>
+  <font color="#FF0000">}</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>rawHash <font color="#008080">instanceof</font> ArrayBuffer<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">return</font></b> <b><font color="#000000">arrayBufferToHex</font></b><font color="#990000">(</font>rawHash<font color="#990000">);</font>
+  <font color="#FF0000">}</font>
+  <b><font color="#0000FF">return</font></b> rawHash<font color="#990000">.</font><b><font color="#000000">join</font></b><font color="#990000">(</font><font color="#FF0000">":"</font><font color="#990000">).</font><b><font color="#000000">toUpperCase</font></b><font color="#990000">();</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+export <font color="#008080">const</font> pemToDER <font color="#990000">=</font> pem <font color="#990000">=&gt;</font> <font color="#FF0000">{</font>
+  <b><font color="#0000FF">return</font></b> <b><font color="#000000">stringToArrayBuffer</font></b><font color="#990000">(</font><b><font color="#000000">atob</font></b><font color="#990000">(</font>pem<font color="#990000">));</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+</tt></pre>

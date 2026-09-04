@@ -1,0 +1,50 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>#<font color="#008080">solution</font> part @<font color="#993399">1</font>
+<font color="#008080">def</font> <b><font color="#000000">queue_time</font></b><font color="#990000">(</font>customers<font color="#990000">,</font> n<font color="#990000">):</font>
+    tills <font color="#990000">=</font> <font color="#990000">[</font><font color="#993399">0</font><font color="#990000">]*</font>n
+    <b><font color="#0000FF">for</font></b> i <font color="#008080">in</font> customers<font color="#990000">:</font>
+         tills<font color="#990000">[</font><font color="#993399">0</font><font color="#990000">]</font> <font color="#990000">+=</font> i<font color="#990000">;</font> tills<font color="#990000">.</font><b><font color="#000000">sort</font></b><font color="#990000">()</font>
+    <b><font color="#0000FF">return</font></b> <b><font color="#000000">max</font></b><font color="#990000">(</font>tills<font color="#990000">)</font>
+
+#<font color="#008080">solution</font> part @<font color="#993399">2</font>
+<b><font color="#0000FF">class</font></b> <font color="#008080">MarketQueue</font><font color="#990000">():</font>
+    
+    <font color="#008080">def</font> <b><font color="#000000">__init__</font></b><font color="#990000">(</font>self<font color="#990000">,</font>customers<font color="#990000">,</font>n<font color="#990000">):</font>
+        self<font color="#990000">.</font>customers <font color="#990000">=</font> customers
+        self<font color="#990000">.</font>n<font color="#990000">=</font>n
+        self<font color="#990000">.</font>timer <font color="#990000">=</font> <font color="#993399">0</font>
+        self<font color="#990000">.</font>active_checkouts <font color="#990000">=</font> <font color="#990000">[]</font>
+        
+    <font color="#008080">def</font> <b><font color="#000000">calculate_total_time</font></b><font color="#990000">(</font>self<font color="#990000">):</font>
+        <b><font color="#0000FF">while</font></b> self<font color="#990000">.</font>customers<font color="#990000">:</font>
+            self<font color="#990000">.</font><b><font color="#000000">process_queue</font></b><font color="#990000">()</font>   
+        <b><font color="#0000FF">return</font></b> self<font color="#990000">.</font>timer
+
+    <font color="#008080">def</font> <b><font color="#000000">process_queue</font></b><font color="#990000">(</font>self<font color="#990000">):</font>
+        <b><font color="#0000FF">if</font></b> <b><font color="#000000">len</font></b><font color="#990000">(</font>self<font color="#990000">.</font>active_checkouts<font color="#990000">)</font> <font color="#990000">&lt;</font> self<font color="#990000">.</font>n<font color="#990000">:</font>
+            queue_index <font color="#990000">=</font> self<font color="#990000">.</font>n <font color="#990000">-</font> <b><font color="#000000">len</font></b><font color="#990000">(</font>self<font color="#990000">.</font>active_checkouts<font color="#990000">)</font>
+            self<font color="#990000">.</font>active_checkouts<font color="#990000">.</font><b><font color="#000000">extend</font></b><font color="#990000">(</font>self<font color="#990000">.</font>customers<font color="#990000">[:</font>queue_index<font color="#990000">])</font>
+            self<font color="#990000">.</font>customers<font color="#990000">[:</font>queue_index<font color="#990000">]</font> <font color="#990000">=</font> <font color="#990000">[]</font>
+        <b><font color="#0000FF">while</font></b> self<font color="#990000">.</font><font color="#008080">active_checkouts</font> <b><font color="#000000">and</font></b> <font color="#990000">(</font><b><font color="#000000">len</font></b><font color="#990000">(</font>self<font color="#990000">.</font>active_checkouts<font color="#990000">)</font> <font color="#990000">==</font> self<font color="#990000">.</font>n or <font color="#008080">not</font> self<font color="#990000">.</font>customers<font color="#990000">)</font> <font color="#990000">:</font>
+            self<font color="#990000">.</font>timer <font color="#990000">+=</font> <font color="#993399">1</font>
+            self<font color="#990000">.</font><b><font color="#000000">process_active_checkouts</font></b><font color="#990000">()</font>
+    
+    <font color="#008080">def</font> <b><font color="#000000">process_active_checkouts</font></b><font color="#990000">(</font>self<font color="#990000">):</font>
+        finished_customers <font color="#990000">=</font> <font color="#990000">[]</font>
+        <b><font color="#0000FF">for</font></b> index<font color="#990000">,</font>customer <font color="#008080">in</font> <b><font color="#000000">enumerate</font></b><font color="#990000">(</font>self<font color="#990000">.</font>active_checkouts<font color="#990000">):</font>
+            <b><font color="#0000FF">if</font></b> customer <font color="#990000">&gt;</font> <font color="#993399">1</font><font color="#990000">:</font>
+                self<font color="#990000">.</font>active_checkouts<font color="#990000">[</font>index<font color="#990000">]</font> <font color="#990000">=</font> <font color="#009900">int</font><font color="#990000">(</font>customer<font color="#990000">-</font><font color="#993399">1</font><font color="#990000">)</font>
+            <b><font color="#0000FF">else</font></b><font color="#990000">:</font>
+                finished_customers<font color="#990000">.</font><b><font color="#000000">append</font></b><font color="#990000">(</font>customer<font color="#990000">)</font>
+        
+        <b><font color="#0000FF">for</font></b> finished <font color="#008080">in</font> finished_customers<font color="#990000">:</font>
+            self<font color="#990000">.</font>active_checkouts<font color="#990000">.</font><b><font color="#000000">remove</font></b><font color="#990000">(</font>finished<font color="#990000">)</font>
+
+# implementing requirements
+<font color="#008080">def</font> <b><font color="#000000">queue_time</font></b><font color="#990000">(</font>customers<font color="#990000">,</font>n<font color="#990000">):</font>
+    <b><font color="#0000FF">return</font></b> <b><font color="#000000">MarketQueue</font></b><font color="#990000">(</font>customers<font color="#990000">,</font>n<font color="#990000">).</font><b><font color="#000000">calculate_total_time</font></b><font color="#990000">()</font>
+
+</tt></pre>

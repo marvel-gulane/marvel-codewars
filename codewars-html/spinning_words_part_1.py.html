@@ -1,0 +1,27 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><font color="#008080">def</font> <b><font color="#000000">spin_words</font></b><font color="#990000">(</font>sentence<font color="#990000">):</font>
+    count<font color="#990000">=</font><font color="#FF0000">" "</font>
+    words <font color="#990000">=</font> sentence<font color="#990000">.</font><b><font color="#000000">split</font></b><font color="#990000">()</font>
+    <b><font color="#0000FF">if</font></b> <b><font color="#000000">len</font></b><font color="#990000">(</font>words<font color="#990000">)</font> <font color="#990000">==</font> <font color="#993399">1</font><font color="#990000">:</font>
+        <b><font color="#0000FF">for</font></b> word <font color="#008080">in</font> words<font color="#990000">:</font>
+            <b><font color="#0000FF">if</font></b> <b><font color="#000000">len</font></b><font color="#990000">(</font>word<font color="#990000">)</font> <font color="#990000">&gt;=</font> <font color="#993399">5</font><font color="#990000">:</font>
+                plus_five <font color="#990000">=</font> word <font color="#990000">[::</font> <font color="#990000">-</font><font color="#993399">1</font><font color="#990000">]</font> <font color="#990000">+</font> <font color="#FF0000">" "</font>
+                count <font color="#990000">+=</font> plus_five
+            <font color="#008080">elif</font> <b><font color="#000000">len</font></b><font color="#990000">(</font>word<font color="#990000">)</font> <font color="#990000">&lt;</font> <font color="#993399">5</font><font color="#990000">:</font>
+                less_than_five <font color="#990000">=</font> word <font color="#990000">+</font> <font color="#FF0000">" "</font>
+                count <font color="#990000">+=</font> less_than_five
+            <b><font color="#0000FF">return</font></b> count<font color="#990000">[:-</font><font color="#993399">1</font><font color="#990000">]</font>
+
+        <b><font color="#0000FF">else</font></b><font color="#990000">:</font>
+            <b><font color="#0000FF">for</font></b> word <font color="#008080">in</font> words<font color="#990000">:</font>
+                <b><font color="#0000FF">if</font></b> <b><font color="#000000">len</font></b><font color="#990000">(</font>word<font color="#990000">)</font> <font color="#990000">&gt;=</font> <font color="#993399">5</font><font color="#990000">:</font>
+                    plus_five <font color="#990000">=</font> word<font color="#990000">[::-</font><font color="#993399">1</font><font color="#990000">]</font>
+                    count <font color="#990000">+=</font> plus_five
+                <font color="#008080">elif</font> <b><font color="#000000">len</font></b><font color="#990000">(</font>word<font color="#990000">)</font> <font color="#990000">&lt;</font> <font color="#993399">5</font><font color="#990000">:</font>
+                    less_than_five <font color="#990000">=</font> word <font color="#990000">+</font> <font color="#FF0000">" "</font>
+                    count <font color="#990000">+=</font> less_than_five
+            <b><font color="#0000FF">return</font></b> count<font color="#990000">[:</font> <font color="#990000">-</font><font color="#993399">1</font><font color="#990000">]</font>
+</tt></pre>

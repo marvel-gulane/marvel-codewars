@@ -1,0 +1,20 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><font color="#008080">def</font> <b><font color="#000000">count_smileys</font></b><font color="#990000">(</font>arr<font color="#990000">):</font>
+    valid_eyes <font color="#990000">=</font> <font color="#990000">[</font><font color="#FF0000">':'</font><font color="#990000">,</font><font color="#FF0000">';'</font><font color="#990000">]</font>
+    valid_nose <font color="#990000">=</font> <font color="#990000">[</font><font color="#FF0000">'-'</font><font color="#990000">,</font><font color="#FF0000">'~'</font><font color="#990000">]</font>
+    valid_mouth <font color="#990000">=</font> <font color="#990000">[</font><font color="#FF0000">')'</font><font color="#990000">,</font> <font color="#FF0000">'D'</font><font color="#990000">]</font>
+    
+    count <font color="#990000">=</font> <font color="#993399">0</font>
+    <b><font color="#0000FF">for</font></b> i<font color="#990000">,</font> item <font color="#008080">in</font> <b><font color="#000000">enumerate</font></b><font color="#990000">(</font>arr<font color="#990000">):</font>
+        <b><font color="#0000FF">if</font></b> <b><font color="#000000">len</font></b><font color="#990000">(</font>item<font color="#990000">)==</font><font color="#993399">2</font><font color="#990000">:</font>
+            <b><font color="#0000FF">if</font></b> item<font color="#990000">[</font><font color="#993399">0</font><font color="#990000">]</font> <font color="#008080">in</font> valid_eyes <font color="#008080">and</font> item<font color="#990000">[</font><font color="#993399">1</font><font color="#990000">]</font> <font color="#008080">in</font> valid_mouth<font color="#990000">:</font>
+                count <font color="#990000">+=</font> <font color="#993399">1</font>
+                
+        <font color="#008080">elif</font> <b><font color="#000000">len</font></b><font color="#990000">(</font>item<font color="#990000">)==</font><font color="#993399">3</font><font color="#990000">:</font>
+            <b><font color="#0000FF">if</font></b> item<font color="#990000">[</font><font color="#993399">0</font><font color="#990000">]</font> <font color="#008080">in</font> valid_eyes <font color="#008080">and</font> item<font color="#990000">[</font><font color="#993399">1</font><font color="#990000">]</font> <font color="#008080">in</font> valid_nose <font color="#008080">and</font> item<font color="#990000">[</font><font color="#993399">2</font><font color="#990000">]</font> <font color="#008080">in</font> valid_mouth<font color="#990000">:</font>
+                count <font color="#990000">+=</font> <font color="#993399">1</font>
+    <b><font color="#0000FF">return</font></b> count
+</tt></pre>

@@ -1,0 +1,26 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><font color="#008080">def</font> <b><font color="#000000">likes</font></b><font color="#990000">(</font>names<font color="#990000">):</font>
+    string_return <font color="#990000">=</font> <font color="#FF0000">"must be "</font>
+
+    <b><font color="#0000FF">if</font></b> <b><font color="#000000">len</font></b><font color="#990000">(</font>names<font color="#990000">)</font> <font color="#990000">==</font> <font color="#993399">0</font><font color="#990000">:</font>
+        string_return <font color="#990000">=</font> <font color="#FF0000">"must be no one likes this"</font>
+    <font color="#008080">elif</font> <b><font color="#000000">len</font></b><font color="#990000">(</font>names<font color="#990000">)</font> <font color="#990000">==</font> <font color="#993399">1</font><font color="#990000">:</font>
+        string_return <font color="#990000">=</font> <b><font color="#000000">str</font></b><font color="#990000">(</font>names<font color="#990000">[</font><font color="#993399">0</font><font color="#990000">])</font> <font color="#990000">+</font> <font color="#FF0000">" likes this"</font>
+    <font color="#008080">elif</font> <b><font color="#000000">len</font></b><font color="#990000">(</font>names<font color="#990000">)</font> <font color="#990000">&gt;</font> <font color="#993399">1</font> <font color="#008080">and</font> <b><font color="#000000">len</font></b><font color="#990000">(</font>names<font color="#990000">)</font> <font color="#990000">&lt;</font> <font color="#993399">4</font><font color="#990000">:</font>
+        <b><font color="#0000FF">for</font></b> name <font color="#008080">in</font> <b><font color="#000000">range</font></b><font color="#990000">(</font><font color="#993399">0</font><font color="#990000">,</font> <b><font color="#000000">len</font></b><font color="#990000">(</font>names<font color="#990000">)</font> <font color="#990000">&lt;</font> <font color="#993399">4</font><font color="#990000">):</font>
+            string_return <font color="#990000">=</font> string_return <font color="#990000">+</font> names<font color="#990000">[</font>name<font color="#990000">]</font> <font color="#990000">+</font> <font color="#FF0000">','</font>
+        string_return <font color="#990000">=</font> string_return<font color="#990000">[:]</font>#<font color="#990000">[:-</font><font color="#993399">2</font><font color="#990000">]</font>
+        string_return <font color="#990000">=</font> string_return <font color="#990000">+</font> <font color="#FF0000">' and '</font> <font color="#990000">+</font> <b><font color="#000000">str</font></b><font color="#990000">(</font>names<font color="#990000">)</font> <font color="#990000">+</font> <font color="#FF0000">' likes this'</font>
+    <b><font color="#0000FF">else</font></b><font color="#990000">:</font>
+        <b><font color="#0000FF">for</font></b> name <font color="#008080">in</font> <b><font color="#000000">range</font></b><font color="#990000">(</font><font color="#993399">0</font><font color="#990000">,</font><font color="#993399">2</font><font color="#990000">):</font>
+            string_return <font color="#990000">=</font> string_return <font color="#990000">+</font> names<font color="#990000">[</font>name<font color="#990000">]</font> <font color="#990000">+</font> <font color="#FF0000">','</font>
+        string_return <font color="#990000">=</font> string_return #<font color="#990000">[:-</font><font color="#993399">2</font><font color="#990000">]</font>
+        string_return <font color="#990000">=</font> string_return <font color="#990000">+</font> <font color="#FF0000">' and '</font> <font color="#990000">+</font> <b><font color="#000000">str</font></b><font color="#990000">(</font>names<font color="#990000">)</font> <font color="#990000">+</font> <font color="#FF0000">' others likes this'</font>
+    <b><font color="#0000FF">return</font></b> string_return
+users <font color="#990000">=</font> <font color="#990000">[</font><font color="#FF0000">''</font><font color="#990000">,</font><font color="#FF0000">'Jacob'</font><font color="#990000">,</font><font color="#FF0000">'Peter'</font><font color="#990000">,</font><font color="#FF0000">'Alex'</font><font color="#990000">,</font><font color="#FF0000">'Max'</font><font color="#990000">,</font><font color="#FF0000">'John'</font><font color="#990000">]</font>
+<b><font color="#0000FF">for</font></b> i <font color="#008080">in</font> users<font color="#990000">:</font>
+    <b><font color="#000000">print</font></b><font color="#990000">(</font><b><font color="#000000">likes</font></b><font color="#990000">(</font>i<font color="#990000">))</font>
+</tt></pre>

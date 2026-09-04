@@ -1,0 +1,19 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><font color="#008080">def</font> <b><font color="#000000">decompose</font></b><font color="#990000">(</font>n<font color="#990000">):</font>
+    total <font color="#990000">=</font> <font color="#993399">0</font>
+    answer <font color="#990000">=</font> <font color="#990000">[</font>n<font color="#990000">]</font>
+    <b><font color="#0000FF">while</font></b> <b><font color="#000000">len</font></b><font color="#990000">(</font>answer<font color="#990000">):</font>
+        temp <font color="#990000">=</font> answer<font color="#990000">.</font><b><font color="#000000">pop</font></b><font color="#990000">()</font>
+        total <font color="#990000">+=</font> temp <font color="#990000">**</font> <font color="#993399">2</font>
+        <b><font color="#0000FF">for</font></b> i <font color="#008080">in</font> <b><font color="#000000">range</font></b><font color="#990000">(</font>temp <font color="#990000">-</font> <font color="#993399">1</font><font color="#990000">,</font> <font color="#993399">0</font><font color="#990000">,</font> <font color="#990000">-</font><font color="#993399">1</font><font color="#990000">):</font>
+            <b><font color="#0000FF">if</font></b> total <font color="#990000">-</font> <font color="#990000">(</font>i <font color="#990000">**</font> <font color="#993399">2</font><font color="#990000">)</font> <font color="#990000">&gt;=</font> <font color="#993399">0</font><font color="#990000">:</font>
+                total <font color="#990000">-=</font> i <font color="#990000">**</font> <font color="#993399">2</font>
+                answer<font color="#990000">.</font><b><font color="#000000">append</font></b><font color="#990000">(</font>i<font color="#990000">)</font>
+                <b><font color="#0000FF">if</font></b> total <font color="#990000">==</font> <font color="#993399">0</font><font color="#990000">:</font>
+                    <b><font color="#0000FF">return</font></b> <b><font color="#000000">sorted</font></b><font color="#990000">(</font>answer<font color="#990000">)</font>
+    <b><font color="#0000FF">return</font></b> None
+
+</tt></pre>

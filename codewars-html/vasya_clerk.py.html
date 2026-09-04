@@ -1,0 +1,24 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><font color="#008080">def</font> <b><font color="#000000">tickets</font></b><font color="#990000">(</font>people<font color="#990000">):</font>
+    change <font color="#990000">=</font> <font color="#FF0000">{</font><font color="#993399">25</font><font color="#990000">:</font> <font color="#993399">0</font><font color="#990000">,</font> <font color="#993399">50</font><font color="#990000">:</font> <font color="#993399">0</font><font color="#990000">,</font> <font color="#993399">100</font><font color="#990000">:</font> <font color="#993399">0</font><font color="#FF0000">}</font>
+    <b><font color="#0000FF">for</font></b> money <font color="#008080">in</font> people<font color="#990000">:</font>
+        <b><font color="#0000FF">if</font></b> money <font color="#990000">==</font> <font color="#993399">25</font><font color="#990000">:</font>
+            change<font color="#990000">[</font><font color="#993399">25</font><font color="#990000">]</font> <font color="#990000">+=</font> <font color="#993399">1</font>
+        <font color="#008080">elif</font> money <font color="#990000">==</font> <font color="#993399">50</font><font color="#990000">:</font>
+            change<font color="#990000">[</font><font color="#993399">50</font><font color="#990000">]</font> <font color="#990000">+=</font> <font color="#993399">1</font>
+            change<font color="#990000">[</font><font color="#993399">25</font><font color="#990000">]</font> <font color="#990000">-=</font> <font color="#993399">1</font>
+        <font color="#008080">elif</font> money <font color="#990000">==</font> <font color="#993399">100</font><font color="#990000">:</font>
+            change<font color="#990000">[</font><font color="#993399">100</font><font color="#990000">]</font> <font color="#990000">+=</font> <font color="#993399">1</font>
+            <b><font color="#0000FF">if</font></b> change<font color="#990000">[</font><font color="#993399">50</font><font color="#990000">]</font> <font color="#990000">&gt;=</font> <font color="#993399">1</font><font color="#990000">:</font>
+                change<font color="#990000">[</font><font color="#993399">50</font><font color="#990000">]</font> <font color="#990000">-=</font> <font color="#993399">1</font>
+                change<font color="#990000">[</font><font color="#993399">25</font><font color="#990000">]</font> <font color="#990000">-=</font> <font color="#993399">1</font>
+            <b><font color="#0000FF">else</font></b><font color="#990000">:</font>
+                change<font color="#990000">[</font><font color="#993399">25</font><font color="#990000">]</font> <font color="#990000">-=</font> <font color="#993399">3</font>
+        <b><font color="#0000FF">if</font></b> change<font color="#990000">[</font><font color="#993399">25</font><font color="#990000">]</font> <font color="#990000">+</font> change<font color="#990000">[</font><font color="#993399">50</font><font color="#990000">]</font> <font color="#990000">+</font> change<font color="#990000">[</font><font color="#993399">100</font><font color="#990000">]</font> <font color="#990000">&lt;</font> <font color="#993399">0</font> <font color="#008080">or</font> change<font color="#990000">[</font><font color="#993399">25</font><font color="#990000">]</font> <font color="#990000">&lt;</font> <font color="#993399">0</font><font color="#990000">:</font>
+            <b><font color="#0000FF">return</font></b> <font color="#FF0000">"NO"</font>
+
+    <b><font color="#0000FF">return</font></b> <font color="#FF0000">"YES"</font>
+</tt></pre>
