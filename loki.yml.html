@@ -1,0 +1,61 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>auth_enabled<font color="#990000">:</font> <b><font color="#0000FF">false</font></b>
+
+server<font color="#990000">:</font>
+  http_listen_port<font color="#990000">:</font> <font color="#993399">3100</font>
+
+ingester<font color="#990000">:</font>
+  lifecycler<font color="#990000">:</font>
+    address<font color="#990000">:</font> <font color="#993399">127.0</font><font color="#990000">.</font><font color="#993399">0.1</font>
+    ring<font color="#990000">:</font>
+      kvstore<font color="#990000">:</font>
+        store<font color="#990000">:</font> inmemory
+      replication_factor<font color="#990000">:</font> <font color="#993399">1</font>
+    final_sleep<font color="#990000">:</font> 0s
+  chunk_idle_period<font color="#990000">:</font> 5m
+  chunk_retain_period<font color="#990000">:</font> 30s
+  max_transfer_retries<font color="#990000">:</font> <font color="#993399">0</font>
+
+schema_config<font color="#990000">:</font>
+  configs<font color="#990000">:</font>
+    <font color="#990000">-</font> from<font color="#990000">:</font> <font color="#993399">2018</font><font color="#990000">-</font><font color="#993399">04</font><font color="#990000">-</font><font color="#993399">15</font>
+      store<font color="#990000">:</font> boltdb
+      object_store<font color="#990000">:</font> filesystem
+      schema<font color="#990000">:</font> v11
+      index<font color="#990000">:</font>
+        prefix<font color="#990000">:</font> index_
+        period<font color="#990000">:</font> 168h
+
+storage_config<font color="#990000">:</font>
+  boltdb<font color="#990000">:</font>
+    directory<font color="#990000">:</font> <font color="#990000">/</font>tmp<font color="#990000">/</font>loki<font color="#990000">/</font>index
+
+  filesystem<font color="#990000">:</font>
+    directory<font color="#990000">:</font> <font color="#990000">/</font>tmp<font color="#990000">/</font>loki<font color="#990000">/</font>chunks
+
+limits_config<font color="#990000">:</font>
+  enforce_metric_name<font color="#990000">:</font> <b><font color="#0000FF">false</font></b>
+  reject_old_samples<font color="#990000">:</font> <b><font color="#0000FF">true</font></b>
+  reject_old_samples_max_age<font color="#990000">:</font> 168h
+
+chunk_store_config<font color="#990000">:</font>
+  max_look_back_period<font color="#990000">:</font> 0s
+
+table_manager<font color="#990000">:</font>
+  chunk_tables_provisioning<font color="#990000">:</font>
+    inactive_read_throughput<font color="#990000">:</font> <font color="#993399">0</font>
+    inactive_write_throughput<font color="#990000">:</font> <font color="#993399">0</font>
+    provisioned_read_throughput<font color="#990000">:</font> <font color="#993399">0</font>
+    provisioned_write_throughput<font color="#990000">:</font> <font color="#993399">0</font>
+  index_tables_provisioning<font color="#990000">:</font>
+    inactive_read_throughput<font color="#990000">:</font> <font color="#993399">0</font>
+    inactive_write_throughput<font color="#990000">:</font> <font color="#993399">0</font>
+    provisioned_read_throughput<font color="#990000">:</font> <font color="#993399">0</font>
+    provisioned_write_throughput<font color="#990000">:</font> <font color="#993399">0</font>
+
+  retention_deletes_enabled<font color="#990000">:</font> <b><font color="#0000FF">false</font></b>
+  retention_period<font color="#990000">:</font> 0s
+</tt></pre>

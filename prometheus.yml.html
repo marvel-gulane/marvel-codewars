@@ -1,0 +1,32 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>global<font color="#990000">:</font>
+  scrape_interval<font color="#990000">:</font>     15s
+  evaluation_interval<font color="#990000">:</font> 15s
+
+alerting<font color="#990000">:</font>
+  alertmanagers<font color="#990000">:</font>
+  <font color="#990000">-</font> static_configs<font color="#990000">:</font>
+    <font color="#990000">-</font> targets<font color="#990000">:</font>
+
+rule_files<font color="#990000">:</font>
+
+scrape_configs<font color="#990000">:</font>
+  <font color="#990000">-</font> job_name<font color="#990000">:</font> <font color="#FF0000">'prometheus'</font>
+
+    static_configs<font color="#990000">:</font>
+    <font color="#990000">-</font> targets<font color="#990000">:</font> <font color="#990000">[</font><font color="#FF0000">'localhost:9090'</font><font color="#990000">]</font>
+
+  <font color="#990000">-</font> job_name<font color="#990000">:</font> <font color="#FF0000">'node_exporter'</font>
+
+    static_configs<font color="#990000">:</font>
+    <font color="#990000">-</font> targets<font color="#990000">:</font> <font color="#990000">[</font><font color="#FF0000">'localhost:9100'</font><font color="#990000">]</font>
+
+  <font color="#990000">-</font> job_name<font color="#990000">:</font> <font color="#FF0000">'promtrail'</font>
+
+    static_configs<font color="#990000">:</font>
+    <font color="#990000">-</font> targets<font color="#990000">:</font> <font color="#990000">[</font><font color="#FF0000">'localhost:3100'</font><font color="#990000">]</font>
+
+</tt></pre>

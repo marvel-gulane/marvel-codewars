@@ -1,0 +1,53 @@
+! =========================================================
+! Fighting Force XTerm
+! =========================================================
+
+XTerm*background:         #000000
+XTerm*foreground:         #ff2020
+XTerm*cursorColor:        #ff3030
+
+! Typewriter font
+XTerm*faceName:           Courier
+XTerm*faceSize:           6
+
+! Copy selection to clipboard
+XTerm*selectToClipboard:  true
+XTerm*selectToPrimary:    true
+
+! =========================================================
+! Ctrl+Shift+V = Paste
+! Ctrl+Shift+C = Copy
+! =========================================================
+
+XTerm*vt100.translations: #override \
+    Ctrl Shift <KeyPress>V: insert-selection(CLIPBOARD) \n\
+    Ctrl Shift <KeyPress>C: select-end(CLIPBOARD)
+
+! =========================================================
+! Colors
+! =========================================================
+
+XTerm*color0:  #000000
+XTerm*color1:  #ff0000
+XTerm*color2:  #00aa00
+XTerm*color3:  #ffaa00
+XTerm*color4:  #0055ff
+XTerm*color5:  #aa00aa
+XTerm*color6:  #00aaaa
+XTerm*color7:  #cccccc
+
+XTerm*color8:  #333333
+XTerm*color9:  #ff3030
+XTerm*color10: #00ff00
+XTerm*color11: #ffff00
+XTerm*color12: #4488ff
+XTerm*color13: #ff00ff
+XTerm*color14: #00ffff
+XTerm*color15: #ffffff
+
+XTerm*highlightColor:     #ff2020
+XTerm*highlightTextColor: #000000
+
+XTerm*cursorBlink:        true
+XTerm*internalBorder:     4
+

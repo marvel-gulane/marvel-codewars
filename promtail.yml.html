@@ -1,0 +1,39 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>server<font color="#990000">:</font>
+  http_listen_port<font color="#990000">:</font> <font color="#993399">9200</font>
+  grpc_listen_port<font color="#990000">:</font> <font color="#993399">0</font>
+
+positions<font color="#990000">:</font>
+  filename<font color="#990000">:</font> <font color="#990000">/</font>tmp<font color="#990000">/</font>positions<font color="#990000">.</font>yml
+
+clients<font color="#990000">:</font>
+  <font color="#990000">-</font> url<font color="#990000">:</font> http<font color="#990000">:</font><i><font color="#9A1900">//localhost:3100/loki/api/v1/push</font></i>
+
+
+scrape_configs<font color="#990000">:</font>
+  <font color="#990000">-</font> job_name<font color="#990000">:</font> journal
+    journal<font color="#990000">:</font>
+      max_age<font color="#990000">:</font> 12h
+      path<font color="#990000">:</font> <font color="#990000">/</font>var<font color="#990000">/</font>log<font color="#990000">/</font>journal
+      labels<font color="#990000">:</font>
+        job<font color="#990000">:</font> systemd<font color="#990000">-</font>journal
+    relabel_configs<font color="#990000">:</font>
+      <font color="#990000">-</font> source_labels<font color="#990000">:</font> <font color="#990000">[</font><font color="#FF0000">'__journal__systemd_unit'</font><font color="#990000">]</font>
+        target_label<font color="#990000">:</font> <font color="#FF0000">'unit'</font>
+
+#scrape_configs<font color="#990000">:</font>
+#    <font color="#990000">-</font> job_name<font color="#990000">:</font> system
+#      pipeline_stages<font color="#990000">:</font>
+#      static_configs<font color="#990000">:</font>
+#      <font color="#990000">-</font> targets<font color="#990000">:</font>
+#         <font color="#990000">-</font> localhost
+#        labels<font color="#990000">:</font>
+#         job<font color="#990000">:</font> varlogs
+#         host<font color="#990000">:</font> ward_workstation
+#         agent<font color="#990000">:</font> promtail
+#         __path__<font color="#990000">:</font> <font color="#990000">/</font>var<font color="#990000">/</font>log<i><font color="#9A1900">/*.log</font></i>
+
+</tt></pre>
